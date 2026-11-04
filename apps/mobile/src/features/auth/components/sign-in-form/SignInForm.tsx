@@ -9,9 +9,11 @@ import { authClient } from "../../../../services/session/auth-client";
 import { useSession } from "../../../../providers/SessionProvider";
 import { Input } from "../../../../components/ui/input";
 import { consumeDestination } from "../../../../services/deep-links/deferred";
+import { useConnection } from "../../../../services/api/use-connection";
 export function SignInForm() {
   const form = useValidatedForm(signInSchema, { email: "", password: "" });
   const { refresh } = useSession();
+  const { phase } = useConnection();
   const [mfa, setMfa] = useState(false),
     [backup, setBackup] = useState(false),
     [code, setCode] = useState("");
@@ -114,7 +116,14 @@ export function SignInForm() {
         <Notice danger>{form.formState.errors.root.message}</Notice>
       )}
       <Button
-        title={mfa ? "Verify and sign in" : "Sign in"}
+        title={
+          (form.formState.isSubmitting || mfaBusy) &&
+          (phase === "connecting" || phase === "slow")
+            ? "Securing connection…"
+            : mfa
+              ? "Verify and sign in"
+              : "Sign in"
+        }
         busy={form.formState.isSubmitting || mfaBusy}
         onPress={() => void (mfa ? confirmMfa() : submit())}
       />

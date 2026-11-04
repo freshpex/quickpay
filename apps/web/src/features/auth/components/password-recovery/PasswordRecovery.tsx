@@ -6,8 +6,10 @@ import { api, mutation } from "@quickpay/api-client";
 import { Field } from "../../../../components/ui/form-field";
 import { PasswordInput } from "../../../../components/ui/password-input";
 import { Button } from "../../../../components/ui/button";
+import { useConnection } from "../../../../components/feedback/connection-status/ConnectionStatus";
 export function PasswordRecovery({ reset = false }: { reset?: boolean }) {
   const [token, setToken] = useState("");
+  const { phase } = useConnection();
   useEffect(
     () =>
       setToken(new URLSearchParams(window.location.search).get("token") || ""),
@@ -18,6 +20,7 @@ export function PasswordRecovery({ reset = false }: { reset?: boolean }) {
     [done, setDone] = useState(false);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (busy) return;
     const v = Object.fromEntries(new FormData(e.currentTarget));
     if (reset) {
       const p = password.safeParse(v.password);
@@ -101,7 +104,13 @@ export function PasswordRecovery({ reset = false }: { reset?: boolean }) {
         </p>
       )}
       <Button className="w-full" disabled={busy}>
-        {busy ? "Please wait…" : reset ? "Reset password" : "Send reset link"}
+        {busy
+          ? phase === "connecting" || phase === "slow"
+            ? "Securing connection…"
+            : "Please wait…"
+          : reset
+            ? "Reset password"
+            : "Send reset link"}
       </Button>
     </form>
   );

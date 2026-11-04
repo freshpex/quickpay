@@ -10,8 +10,10 @@ import { Button } from "../../../../components/ui/button";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { Notice } from "../../../../components/feedback/Feedback";
 import { siteUrl } from "../../../../lib/config";
+import { useConnection } from "../../../../services/api/use-connection";
 export function SignUpForm() {
   const { ref } = useLocalSearchParams<{ ref?: string }>();
+  const { phase } = useConnection();
   const form = useValidatedForm(signUpSchema, {
     name: "",
     email: "",
@@ -118,7 +120,12 @@ export function SignUpForm() {
         <Notice danger>{form.formState.errors.root.message}</Notice>
       )}
       <Button
-        title="Create account"
+        title={
+          form.formState.isSubmitting &&
+          (phase === "connecting" || phase === "slow")
+            ? "Securing connection…"
+            : "Create account"
+        }
         busy={form.formState.isSubmitting}
         disabled={!siteUrl}
         onPress={() => void submit()}

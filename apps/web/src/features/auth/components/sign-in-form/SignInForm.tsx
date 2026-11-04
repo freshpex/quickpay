@@ -6,13 +6,16 @@ import { api, mutation } from "@quickpay/api-client";
 import { Field } from "../../../../components/ui/form-field";
 import { PasswordInput } from "../../../../components/ui/password-input";
 import { Button } from "../../../../components/ui/button";
+import { useConnection } from "../../../../components/feedback/connection-status/ConnectionStatus";
 export function SignInForm() {
   const router = useRouter();
+  const { phase } = useConnection();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [mfa, setMfa] = useState(false);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError("");
     const v = Object.fromEntries(new FormData(e.currentTarget));
@@ -79,7 +82,13 @@ export function SignInForm() {
         </p>
       )}
       <Button disabled={busy} className="w-full">
-        {busy ? "Signing you in…" : mfa ? "Verify and sign in" : "Sign in"}
+        {busy
+          ? phase === "connecting" || phase === "slow"
+            ? "Securing connection…"
+            : "Signing you in…"
+          : mfa
+            ? "Verify and sign in"
+            : "Sign in"}
       </Button>
       <p className="text-center text-sm text-ink/60">
         New here?{" "}

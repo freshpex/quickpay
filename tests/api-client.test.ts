@@ -1,5 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { api, createApiClient } from "../packages/api-client/src/index";
+import { createApiClient } from "../packages/api-client/src/index";
+// Raw transport tests; readiness/recovery has its own focused suite.
+const api = createApiClient({ baseUrl: "/api/v1", credentials: "include" });
 afterEach(() => vi.unstubAllGlobals());
 it("uses the configured native origin, signed bearer and revocation hook without browser cookies", async () => {
   const expired = vi.fn();

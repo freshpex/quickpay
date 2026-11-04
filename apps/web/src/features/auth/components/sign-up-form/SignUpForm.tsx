@@ -7,8 +7,10 @@ import { Field } from "../../../../components/ui/form-field";
 import { PasswordInput } from "../../../../components/ui/password-input";
 import { Button } from "../../../../components/ui/button";
 import { toast } from "sonner";
+import { useConnection } from "../../../../components/feedback/connection-status/ConnectionStatus";
 export function SignUpForm() {
   const formRef = useRef<HTMLFormElement>(null);
+  const { phase } = useConnection();
   const [errors, setErrors] = useState<Record<string, string>>({}),
     [busy, setBusy] = useState(false),
     [done, setDone] = useState(false);
@@ -25,6 +27,7 @@ export function SignUpForm() {
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     const data = new FormData(event.currentTarget);
     const raw = {
       ...Object.fromEntries(data),
@@ -180,7 +183,11 @@ export function SignUpForm() {
         </p>
       )}
       <Button disabled={busy} className="w-full">
-        {busy ? "Creating your account…" : "Create account"}
+        {busy
+          ? phase === "connecting" || phase === "slow"
+            ? "Securing connection…"
+            : "Creating your account…"
+          : "Create account"}
       </Button>
       <p className="text-center text-sm text-ink/60">
         Already with us?{" "}

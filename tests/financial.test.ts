@@ -426,12 +426,13 @@ describe("native client extensions", () => {
       (request) => readEvidence(request, value.id),
       true,
     );
-    expect((await download(ownerRequest, {})).status).toBe(409);
+    const context = { params: Promise.resolve({}) };
+    expect((await download(ownerRequest, context)).status).toBe(409);
     // Only the test fixture marks a file clean; uploads never bypass quarantine.
     await pool.query("UPDATE evidence SET status='clean' WHERE id=$1", [
       value.id,
     ]);
-    const privateDownload = await download(ownerRequest, {});
+    const privateDownload = await download(ownerRequest, context);
     expect(privateDownload.status).toBe(200);
     expect(privateDownload.headers.get("Cache-Control")).toBe("no-store");
     expect(Buffer.from(await privateDownload.arrayBuffer())).toEqual(
@@ -440,7 +441,7 @@ describe("native client extensions", () => {
     const otherRequest = new Request("http://localhost:3001", {
       headers: { Authorization: `Bearer ${await login(ids.other)}` },
     });
-    expect((await download(otherRequest, {})).status).toBe(403);
+    expect((await download(otherRequest, context)).status).toBe(403);
   });
 });
 describe("exact money and request contracts", () => {

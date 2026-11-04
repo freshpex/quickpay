@@ -1,4 +1,16 @@
 import type { ApiError } from "@quickpay/contracts";
+import {
+  ConnectionUnavailable,
+  ConnectionOffline,
+  ConnectionInterrupted,
+  webConnection,
+} from "./connection";
+export {
+  createConnectionRecovery,
+  webConnection,
+  ConnectionUnavailable,
+  type ConnectionSnapshot,
+} from "./connection";
 const authMessages: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD:
     "Your email or password is incorrect. Please try again.",
@@ -28,7 +40,7 @@ export type ClientOptions = {
     response: Response,
     context: { token: string | null },
   ) => void | Promise<void>;
-  onUnauthorized?: () => void | Promise<void>;
+  onUnauthorized?: (context: { token: string | null }) => void | Promise<void>;
   credentials?: RequestCredentials;
   fetcher?: typeof fetch;
 };
@@ -62,16 +74,23 @@ async function request<T>(
         headers,
       },
     );
-  } catch {
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
     throw new ApiFailure(0, {
       code: "CONNECTION",
       message:
-        "We could not connect. Check your internet connection and try again.",
+        error instanceof ConnectionInterrupted && path === "/auth/sign-up/email"
+          ? "Your connection was interrupted. Check your email or try signing in before submitting again."
+          : error instanceof ConnectionUnavailable ||
+              error instanceof ConnectionOffline ||
+              error instanceof ConnectionInterrupted
+            ? error.message
+            : "We could not connect. Check your internet connection and try again.",
       correlationId: "",
     });
   }
   await config.onResponse?.(r, { token: token || null });
-  if (r.status === 401 && token) await config.onUnauthorized?.();
+  if (r.status === 401 && token) await config.onUnauthorized?.({ token });
   const body = await r.json().catch(() => null);
   if (!r.ok) {
     const error =
@@ -120,6 +139,7 @@ async function request<T>(
 export const api = createApiClient({
   baseUrl: "/api/v1",
   credentials: "include",
+  fetcher: webConnection.fetch,
 });
 export const mutation = (body: unknown, key?: string): RequestInit => ({
   method: "POST",

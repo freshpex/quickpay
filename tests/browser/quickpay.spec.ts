@@ -95,25 +95,27 @@ async function fixture(
     const custom = extra(path, req.method(), body);
     const data =
       custom ??
-      (path === "/admin/access"
-        ? { allowed: true, mfaEnabled: true }
-        : path === "/auth/get-session"
-          ? session
-          : path === "/profile"
-            ? { user: { name: "Browser Test", email_verified: true } }
-            : path === "/wallet"
-              ? {
-                  available: "2500000",
-                  reserved: "0",
-                  rewards: "0",
-                  reward_debt: "0",
-                  currency: "NGN",
-                }
-              : path.startsWith("/payments/")
-                ? { transaction }
-                : path === "/payments"
-                  ? { transactions: [] }
-                  : {});
+      (path === "/health"
+        ? { status: "ok" }
+        : path === "/admin/access"
+          ? { allowed: true, mfaEnabled: true }
+          : path === "/auth/get-session"
+            ? session
+            : path === "/profile"
+              ? { user: { name: "Browser Test", email_verified: true } }
+              : path === "/wallet"
+                ? {
+                    available: "2500000",
+                    reserved: "0",
+                    rewards: "0",
+                    reward_debt: "0",
+                    currency: "NGN",
+                  }
+                : path.startsWith("/payments/")
+                  ? { transaction }
+                  : path === "/payments"
+                    ? { transactions: [] }
+                    : {});
     await route.fulfill({
       status: 200,
       contentType: "application/json",

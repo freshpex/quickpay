@@ -17,6 +17,9 @@ export function useApi<T>(path: string) {
   }, [path]);
   useEffect(() => {
     void refresh();
+    window.addEventListener("quickpay:connection-restored", refresh);
+    return () =>
+      window.removeEventListener("quickpay:connection-restored", refresh);
   }, [refresh]);
   return { data, error, loading, refresh };
 }

@@ -54,16 +54,23 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener("change", update);
   }, []);
   useEffect(() => {
-    api<{ user: { name: string; email: string; role?: string } } | null>(
-      "/auth/get-session",
-    )
-      .then((s) => {
-        if (!s?.user) router.replace("/sign-in");
-        else setUser(s.user);
-      })
-      .catch(() =>
-        setError("We could not load your account. Please refresh the page."),
-      );
+    const load = () => {
+      setError("");
+      void api<{ user: { name: string; email: string; role?: string } } | null>(
+        "/auth/get-session",
+      )
+        .then((s) => {
+          if (!s?.user) router.replace("/sign-in");
+          else setUser(s.user);
+        })
+        .catch(() =>
+          setError("We could not load your account. Please refresh the page."),
+        );
+    };
+    load();
+    window.addEventListener("quickpay:connection-restored", load);
+    return () =>
+      window.removeEventListener("quickpay:connection-restored", load);
   }, [router]);
   async function logout() {
     try {

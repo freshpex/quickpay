@@ -3,6 +3,7 @@ import { twoFactorClient } from "better-auth/client/plugins";
 import { expoClient } from "@better-auth/expo/client";
 import { authStorage, secure } from "../secure-storage";
 import { rawApiUrl } from "../../lib/config";
+import { connection } from "../api/connection";
 export const authClient = createAuthClient({
   baseURL: `${rawApiUrl || "https://unconfigured.invalid/api/v1"}/auth`,
   plugins: [
@@ -15,6 +16,8 @@ export const authClient = createAuthClient({
     twoFactorClient(),
   ],
   fetchOptions: {
+    customFetchImpl: connection.fetch,
+    retry: 0,
     onSuccess: async (ctx) => {
       const token = ctx.response.headers.get("set-auth-token");
       if (token) await secure.set("token", token);

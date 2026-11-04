@@ -15,9 +15,17 @@ import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { SessionProvider } from "./SessionProvider";
 import { rawApiUrl, validateApiUrl } from "../lib/config";
+import { ApiFailure } from "@quickpay/api-client";
+import { ConnectionStatus } from "../components/feedback/connection-status/ConnectionStatus";
+import { connection } from "../services/api/connection";
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 20000, retry: 1, refetchOnWindowFocus: true },
+    queries: {
+      staleTime: 20000,
+      retry: (count, error) =>
+        !(error instanceof ApiFailure && error.status === 0) && count < 1,
+      refetchOnWindowFocus: true,
+    },
     mutations: { retry: false, networkMode: "always" },
   },
 });
@@ -52,7 +60,21 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener("change", (state) =>
       focusManager.setFocused(state === "active"),
     );
-    return () => sub.remove();
+    let failed = false;
+    const unsubscribe = connection.subscribe(() => {
+      const { phase } = connection.getSnapshot();
+      if (phase === "connecting" || phase === "slow")
+        void SplashScreen.hideAsync();
+      if (phase === "offline" || phase === "unavailable") failed = true;
+      if (phase === "ready" && failed) {
+        failed = false;
+        void queryClient.invalidateQueries();
+      }
+    });
+    return () => {
+      sub.remove();
+      unsubscribe();
+    };
   }, [configError]);
   return (
     <GestureHandlerRootView className="flex-1">
@@ -73,6 +95,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                 <NetworkStatus />
                 {children}
               </BottomSheetModalProvider>
+              <ConnectionStatus />
             </SessionProvider>
           </QueryClientProvider>
         )}

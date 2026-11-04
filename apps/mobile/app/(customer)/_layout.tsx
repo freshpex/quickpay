@@ -8,8 +8,11 @@ import { BrandHeader } from "../../src/components/layout/header/Header";
 import { LoadingState } from "../../src/components/feedback/Feedback";
 import { validTransactionId } from "../../src/services/deep-links/validate";
 import { syncDevice } from "../../src/services/notifications";
+import { Screen } from "../../src/components/layout/screen";
+import { Notice } from "../../src/components/feedback/Feedback";
+import { Button } from "../../src/components/ui/button";
 export default function CustomerLayout() {
-  const { ready, session } = useSession();
+  const { ready, session, error, refresh } = useSession();
   const path = usePathname();
   useEffect(() => {
     if (!session) return;
@@ -33,6 +36,13 @@ export default function CustomerLayout() {
     };
   }, [session?.user.id]);
   if (!ready) return <LoadingState />;
+  if (!session && error)
+    return (
+      <Screen title="Let’s reconnect">
+        <Notice>{error}</Notice>
+        <Button title="Try again" onPress={() => void refresh()} />
+      </Screen>
+    );
   if (!session) {
     deferTransaction(path.match(/^\/transactions\/([0-9a-f-]+)$/i)?.[1]);
     return <Redirect href="/(auth)/sign-in" />;
