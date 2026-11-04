@@ -8,6 +8,11 @@ import {
 import { releaseRewards } from "../../api/src/v1/modules/rewards/services/rewards";
 import { env } from "../../api/src/shared/infrastructure/env";
 import type { PaymentRow } from "../../api/src/v1/modules/payments/repositories/payment.repository";
+import {
+  deliverPush,
+  deliverDevice,
+  checkPushReceipt,
+} from "../../api/src/v1/modules/notifications/jobs/deliver-push";
 let stopping = false;
 let lastHeartbeat = 0;
 process.on("SIGINT", () => {
@@ -22,6 +27,10 @@ async function schedule() {
   await enqueue(pool, "release-rewards", {}, `rewards:${bucket}`);
 }
 async function run(type: string, payload: Record<string, unknown>) {
+  if (type === "push-notification")
+    return deliverPush(String(payload.notificationId));
+  if (type === "push-device") return deliverDevice(payload);
+  if (type === "push-receipt") return checkPushReceipt(String(payload.id));
   if (type === "process-payment") return processPayment(String(payload.id));
   if (type === "release-rewards") return atomic(releaseRewards);
   if (type === "verify-provider") {

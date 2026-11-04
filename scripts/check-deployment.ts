@@ -17,6 +17,10 @@ export function checkDeployment(component: string) {
     return;
   }
   const e = env();
+  if (e.PUSH_ENABLED === "true" && !e.EXPO_ACCESS_TOKEN)
+    throw new Error(
+      "PUSH_ENABLED=true requires EXPO_ACCESS_TOKEN and configured APNs/FCM credentials. Leave push disabled until configured.",
+    );
   if (!e.MAILJET_API_KEY || !e.MAILJET_SECRET_KEY || !e.MAILJET_FROM_EMAIL)
     throw new Error(
       "Configure MAILJET_API_KEY, MAILJET_SECRET_KEY and MAILJET_FROM_EMAIL before deploying.",

@@ -35,6 +35,11 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm --filter @quickpay/mobile exec expo install --check
+      - run: pnpm mobile:export
+        env:
+          EXPO_PUBLIC_API_URL: https://api.example.invalid/api/v1
+          EXPO_PUBLIC_SITE_URL: https://www.example.invalid
       - run: python -m pip install pyyaml==6.0.3 jsonschema==4.25.1
       - run: python scripts/validate-blueprint.py
       - run: pnpm build
@@ -57,3 +62,4 @@ jobs:
             docs/screenshots
             playwright-report
             test-results
+            apps/mobile/dist

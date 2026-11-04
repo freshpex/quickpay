@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, twoFactor } from "better-auth/plugins";
+import { expo } from "@better-auth/expo";
 import { db, schema, pool, enqueue } from "@quickpay/database";
 import { env } from "../../../shared/infrastructure/env";
 const e = () => env();
@@ -11,7 +12,7 @@ function createAuth() {
     secret: e().BETTER_AUTH_SECRET,
     baseURL: e().WEB_ORIGIN,
     basePath: "/api/v1/auth",
-    trustedOrigins: [e().WEB_ORIGIN, e().API_ORIGIN],
+    trustedOrigins: [e().WEB_ORIGIN, e().API_ORIGIN, "quickpay-dev://"],
     database: drizzleAdapter(db, { provider: "pg", schema }),
     emailAndPassword: {
       enabled: true,
@@ -70,7 +71,7 @@ function createAuth() {
       },
     },
     rateLimit: { enabled: true, window: 60, max: 30 },
-    plugins: [bearer(), twoFactor({ issuer: "Quick Pay" })],
+    plugins: [expo(), bearer(), twoFactor({ issuer: "Quick Pay" })],
   });
 }
 export function auth() {

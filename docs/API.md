@@ -6,6 +6,19 @@ Use JSON and bearer sessions for mobile; browser calls use HttpOnly SameSite coo
 
 Money is an integer-kobo string, e.g. `"150000"` means ₦1,500.00. Timestamps are ISO UTC. Financial POSTs require an `Idempotency-Key` of 16–100 safe characters, scoped to the user. Retrying an identical body returns the original transaction; changing details with the same key gives 409. A payment password is authorization, excluded from the persisted request hash and transaction details.
 
+## Native additions
+
+The native app reuses these APIs and the existing bearer plugin. Better Auth's official Expo plugin additionally manages MFA challenge cookies and a narrowly trusted `quickpay-dev://` development origin; browser cookie attributes, origin checks, verification and permissions stay enforced. The client reads signed `set-auth-token` response headers and stores credentials in OS secure storage. There is no refresh-token endpoint; coordinated get-session requests use the existing sliding session policy.
+
+- GET `/wallet/capabilities` (authenticated): `{currency,deposit,withdrawal}`. Each capability includes `available`, `minimum`, `maximum`, `fee` (kobo strings) and `reason`; deposits include available `methods`. Limits are shared with existing command validation, with unchanged values/financial behavior.
+- GET `/payments/by-key/{key}` (authenticated): `{transaction:Transaction|null}` for the caller's idempotency key. An absent key and another account's key both return null. This is a read-only recovery lookup; it never creates/replays a payment.
+- GET/PATCH `/notifications/preferences`: current push availability/account preference; PATCH `{pushEnabled:boolean}`. In-app notifications stay enabled. Unconfigured push cannot be enabled.
+- POST `/notifications/devices`: `{installationId:uuid,token,platform:"ios"|"android"}`. Token is validated and encrypted; binding follows the authenticated user. DELETE with `{installationId}` revokes only an owned binding.
+
+Gift evidence accepts native multipart requests with or without Content-Length. It bounds the actual stream to 5,245,000 bytes before parsing and retains the existing 5 MiB JPG/PNG MIME/signature checks, private encryption, ownership and quarantine.
+
+See [mobile capability map](MOBILE_CAPABILITIES.md) and [push/link setup](mobile/LINKS_AND_PUSH.md). Notifications queue generic push jobs through the existing durable worker and do not alter payment settlement or referral rules.
+
 ## Primary flows
 
 | Flow | Requests and result |

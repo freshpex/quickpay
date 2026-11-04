@@ -61,12 +61,41 @@ export async function upload(req: Request) {
   await rateLimit(`upload:${s.user.id}`, 5);
   const length = Number(req.headers.get("content-length"));
   assert(
-    length > 0 && length <= 5245000,
+    !req.headers.has("content-length") || (length > 0 && length <= 5245000),
     "UPLOAD_SIZE",
     "Choose a JPG or PNG smaller than 5 MB.",
     413,
   );
-  const form = await req.formData();
+  // Native multipart transports can omit Content-Length. Bound the actual stream
+  // before parsing, including when a malicious client lies about its length.
+  const reader = req.body?.getReader();
+  assert(reader, "UPLOAD_TYPE", "Choose a JPG or PNG smaller than 5 MB.");
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const next = await reader.read();
+    if (next.done) break;
+    total += next.value.byteLength;
+    if (total > 5245000) {
+      await reader.cancel();
+      assert(
+        false,
+        "UPLOAD_SIZE",
+        "Choose a JPG or PNG smaller than 5 MB.",
+        413,
+      );
+    }
+    chunks.push(next.value);
+  }
+  const multipart = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    multipart.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const form = await new Response(multipart, {
+    headers: { "Content-Type": req.headers.get("content-type") || "" },
+  }).formData();
   const file = form.get("file");
   assert(
     file instanceof File &&

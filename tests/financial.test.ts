@@ -37,6 +37,18 @@ import type { PaymentRow } from "../apps/api/src/v1/modules/payments/repositorie
 import { handleAuth } from "../apps/api/src/v1/modules/auth/routes/handler";
 import { releaseRewards } from "../apps/api/src/v1/modules/rewards/services/rewards";
 import { claimReward } from "../apps/api/src/v1/modules/rewards/routes/handler";
+import { walletCapabilities } from "../apps/api/src/v1/modules/wallets/routes/capabilities";
+import { recoverPayment } from "../apps/api/src/v1/modules/payments/routes/recovery";
+import {
+  devices,
+  preferences,
+} from "../apps/api/src/v1/modules/notifications/routes/devices";
+import {
+  deliverPush,
+  deliverDevice,
+  checkPushReceipt,
+} from "../apps/api/src/v1/modules/notifications/jobs/deliver-push";
+import { upload as uploadEvidence } from "../apps/api/src/v1/modules/gift-cards/routes/handler";
 import { unlockAdmin } from "../apps/api/src/v1/modules/admin/routes/access";
 import { rewardRules } from "../apps/api/src/v1/modules/admin/routes/reward-rules";
 import {
@@ -126,6 +138,246 @@ beforeAll(async () => {
   await user(ids.other);
 });
 afterAll(() => pool.end());
+
+describe("native client extensions", () => {
+  async function login(id = ids.user) {
+    const response = await handleAuth(
+      new Request("http://localhost:3001/api/v1/auth/sign-in/email", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "expo-origin": "quickpay-dev://",
+        },
+        body: JSON.stringify({
+          email: `${id}@quickpay.test`,
+          password: testPassword,
+        }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    const token = response.headers.get("set-auth-token");
+    expect(token).toBeTruthy();
+    return token!;
+  }
+  function request(token: string, payload?: unknown, method = "GET") {
+    return new Request("http://localhost:3001/api/v1/native-test", {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      ...(payload ? { body: JSON.stringify(payload) } : {}),
+    });
+  }
+  it("uses real native bearer sign-in, sliding session and revocation without changing browser cookies", async () => {
+    const token = await login();
+    const session = await auth().api.getSession({
+      headers: request(token).headers,
+    });
+    expect(session?.user.id).toBe(ids.user);
+    const caps = await (await walletCapabilities(request(token))).json();
+    expect(caps.deposit).toMatchObject({
+      available: false,
+      minimum: "10000",
+      maximum: "100000000",
+      fee: "0",
+      methods: [],
+    });
+    await auth().api.signOut({ headers: request(token).headers });
+    await expect(walletCapabilities(request(token))).rejects.toThrow("sign in");
+  });
+  it("recovers only the owner’s exact idempotency reference", async () => {
+    const row = await payment("deposit");
+    const owner = await login(),
+      other = await login(ids.other);
+    expect(
+      (await (await recoverPayment(request(owner), row.id)).json()).transaction
+        .id,
+    ).toBe(row.id);
+    expect(
+      (await (await recoverPayment(request(other), row.id)).json()).transaction,
+    ).toBeNull();
+    expect(
+      (await (await recoverPayment(request(owner), crypto.randomUUID())).json())
+        .transaction,
+    ).toBeNull();
+  });
+  it("disables unconfigured push registration and preference enablement", async () => {
+    const token = await login();
+    const result = await (await preferences(request(token))).json();
+    expect(result.pushAvailable).toBe(false);
+    await expect(
+      preferences(request(token, { pushEnabled: true }, "PATCH")),
+    ).rejects.toThrow("unavailable");
+    await expect(
+      devices(
+        request(
+          token,
+          {
+            installationId: crypto.randomUUID(),
+            token: "ExponentPushToken[abc]",
+            platform: "android",
+          },
+          "POST",
+        ),
+      ),
+    ).rejects.toThrow("unavailable");
+  });
+  it("binds push devices to the authenticated account and restricts revocation", async () => {
+    const config = env();
+    config.PUSH_ENABLED = "true"; config.EXPO_ACCESS_TOKEN = "local-provider-test";
+    try {
+      const owner = await login(),
+        other = await login(ids.other),
+        installationId = crypto.randomUUID();
+      await devices(
+        request(
+          owner,
+          {
+            installationId,
+            token: "ExponentPushToken[ownership_test]",
+            platform: "android",
+          },
+          "POST",
+        ),
+      );
+      await devices(request(other, { installationId }, "DELETE"));
+      expect(
+        (
+          await pool.query(
+            "SELECT user_id FROM mobile_devices WHERE installation_id=$1",
+            [installationId],
+          )
+        ).rows[0].user_id,
+      ).toBe(ids.user);
+      await devices(
+        request(
+          other,
+          {
+            installationId,
+            token: "ExponentPushToken[ownership_test]",
+            platform: "android",
+          },
+          "POST",
+        ),
+      );
+      expect(
+        (
+          await pool.query(
+            "SELECT user_id FROM mobile_devices WHERE installation_id=$1",
+            [installationId],
+          )
+        ).rows[0].user_id,
+      ).toBe(ids.other);
+      await devices(request(other, { installationId }, "DELETE"));
+    } finally {
+      config.PUSH_ENABLED = "false"; config.EXPO_ACCESS_TOKEN = undefined;
+    }
+  });
+  it("queues generic push payloads, checks receipts and removes unregistered tokens", async () => {
+    const config = env();
+    config.PUSH_ENABLED = "true"; config.EXPO_ACCESS_TOKEN = "local-provider-test";
+    config.EXPO_ACCESS_TOKEN = "local-provider-test";
+    const fetcher = vi.spyOn(globalThis, "fetch");
+    try {
+      const token = await login(),
+        installationId = crypto.randomUUID(),
+        notificationId = crypto.randomUUID();
+      await devices(
+        request(
+          token,
+          {
+            installationId,
+            token: "ExponentPushToken[delivery_test]",
+            platform: "ios",
+          },
+          "POST",
+        ),
+      );
+      await preferences(request(token, { pushEnabled: true }, "PATCH"));
+      await pool.query(
+        "INSERT INTO notifications(id,user_id,title,body) VALUES($1,$2,'Private information','Private payment information')",
+        [notificationId, ids.user],
+      );
+      expect(
+        (
+          await pool.query("SELECT 1 FROM jobs WHERE dedupe=$1", [
+            `push:${notificationId}`,
+          ])
+        ).rowCount,
+      ).toBe(1);
+      await deliverPush(notificationId);
+      const job = (
+        await pool.query(
+          "SELECT payload FROM jobs WHERE type='push-device' AND payload->>'notificationId'=$1",
+          [notificationId],
+        )
+      ).rows[0];
+      fetcher.mockResolvedValueOnce(
+        Response.json({ data: [{ status: "ok", id: "native-ticket-test" }] }),
+      );
+      await deliverDevice(job.payload);
+      const payload = JSON.parse(String(fetcher.mock.calls.at(-1)?.[1]?.body));
+      expect(JSON.stringify(payload)).not.toContain("Private");
+      expect(payload[0].data).toEqual({
+        type: "notification",
+        id: notificationId,
+      });
+      fetcher.mockResolvedValueOnce(
+        Response.json({
+          data: {
+            "native-ticket-test": {
+              status: "error",
+              details: { error: "DeviceNotRegistered" },
+            },
+          },
+        }),
+      );
+      await checkPushReceipt("native-ticket-test");
+      expect(
+        (
+          await pool.query(
+            "SELECT 1 FROM mobile_devices WHERE installation_id=$1",
+            [installationId],
+          )
+        ).rowCount,
+      ).toBe(0);
+    } finally {
+      config.PUSH_ENABLED = "false"; config.EXPO_ACCESS_TOKEN = undefined;
+      config.EXPO_ACCESS_TOKEN = undefined;
+      fetcher.mockRestore();
+    }
+  });
+  it("accepts bounded native multipart uploads without Content-Length and keeps evidence private", async () => {
+    const token = await login();
+    const data = new FormData();
+    data.append(
+      "file",
+      new File(
+        [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0])],
+        "private.png",
+        { type: "image/png" },
+      ),
+    );
+    const response = await uploadEvidence(
+      new Request("http://localhost:3001/api/v1/gift-cards/evidence", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: data,
+      }),
+    );
+    const value = await response.json();
+    expect(value.status).toBe("quarantined");
+    expect(value.url).toBeUndefined();
+    const row = (
+      await pool.query("SELECT * FROM evidence WHERE id=$1", [value.id])
+    ).rows[0];
+    expect(row.user_id).toBe(ids.user);
+    expect(await readFile(row.file_path, "utf8")).not.toContain("private.png");
+    const { unlink } = await import("node:fs/promises");
+    await unlink(row.file_path);
+  });
+});
 describe("exact money and request contracts", () => {
   it("normalizes Nigerian phones and preserves exact kobo", () => {
     expect(phone.parse("0801 234 5678")).toBe("+2348012345678");

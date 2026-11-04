@@ -33,3 +33,7 @@ The shared `Wordmark`/`BrandLogo` component selects the supplied artwork. `light
 `scripts/sync-brand.ts` runs before web development and builds, publishing the original website files under `apps/web/public/brand` plus the relevant mobile SVGs. Native Apple/Android exports remain in the source pack for eventual native apps. All five CSS theme tokens already match the pack README exactly. Keep white artwork on dark surfaces and preserve logo proportions and clear space.
 
 Set `NEXT_PUBLIC_SITE_URL` to the deployed public web origin before building so social metadata contains the correct absolute URLs. It falls back to `WEB_ORIGIN`, then localhost for local development. Manifest icons support home-screen branding; they do not add offline behavior.
+
+## Native placements
+
+`pnpm brand:sync:mobile` copies nine original PNGs byte-for-byte into `apps/mobile/assets/brand` and runs before native development/export. Full mobile header lockups include the name; compact white artwork appears on the deep-purple launch surface. Apple uses the opaque App Store 1024 image and supplied dark 1024 variant. Android uses the original Play/launcher image plus white adaptive foreground on the source pack's violet background and the supplied monochrome layer. No source brand files are modified and no additional licensing/ownership claim is made. Native icon compilation and launcher rendering require platform builds; see current verification evidence.

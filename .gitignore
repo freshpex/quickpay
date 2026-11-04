@@ -11,4 +11,8 @@ coverage/
 *.tsbuildinfo
 .local
 assets/brand/quick-pay-brand-pack-v1.zip
-docs/operations/RENDER.md
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/.env.local

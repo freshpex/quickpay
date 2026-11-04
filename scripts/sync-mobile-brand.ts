@@ -16,5 +16,6 @@ const files: Record<string, string> = {
 };
 const dest = resolve(root, "apps/mobile/assets/brand");
 await mkdir(dest, { recursive: true });
-for (const [source, name] of Object.entries(files)) await copyFile(resolve(pack, source), resolve(dest, name));
+for (const [source, name] of Object.entries(files))
+  await copyFile(resolve(pack, source), resolve(dest, name));
 console.log("Quick Pay mobile branding synced from the original pack.");

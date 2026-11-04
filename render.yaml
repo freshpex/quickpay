@@ -60,6 +60,10 @@ services:
         sync: false
       - key: SMS_ENABLED
         value: "false"
+      - key: PUSH_ENABLED
+        value: "false"
+      - key: EXPO_ACCESS_TOKEN
+        sync: false
       - key: UPLOAD_DIR
         value: /var/data/evidence
 
@@ -177,6 +181,16 @@ services:
           envVarKey: VTPASS_PUBLIC_KEY
       - key: SMS_ENABLED
         value: "false"
+      - key: PUSH_ENABLED
+        fromService:
+          name: quickpay-api
+          type: web
+          envVarKey: PUSH_ENABLED
+      - key: EXPO_ACCESS_TOKEN
+        fromService:
+          name: quickpay-api
+          type: web
+          envVarKey: EXPO_ACCESS_TOKEN
 
 databases:
   - name: quickpay-db

@@ -23,8 +23,9 @@ minimumReleaseAgeExclude:
   - better-auth@1.7.16
   - better-call@1.4.5
   - next@16.4.5
+  - '@better-auth/expo@1.7.16'
+  - lucide-react-native@1.68.0
 onlyBuiltDependencies:
   - sharp
   - esbuild
   - '@tailwindcss/oxide'
-

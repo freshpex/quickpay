@@ -24,12 +24,17 @@ export class ApiFailure extends Error {
 export type ClientOptions = {
   baseUrl: string;
   getToken?: () => Promise<string | null>;
-  onResponse?: (response: Response) => void | Promise<void>;
+  onResponse?: (
+    response: Response,
+    context: { token: string | null },
+  ) => void | Promise<void>;
   onUnauthorized?: () => void | Promise<void>;
   credentials?: RequestCredentials;
+  fetcher?: typeof fetch;
 };
 export function createApiClient(config: ClientOptions) {
-  return <T>(path: string, options: RequestInit = {}) => request<T>(path, options, config);
+  return <T>(path: string, options: RequestInit = {}) =>
+    request<T>(path, options, config);
 }
 async function request<T>(
   path: string,
@@ -49,11 +54,14 @@ async function request<T>(
     headers.set("Content-Type", "application/json");
   let r: Response;
   try {
-    r = await fetch(`${config.baseUrl.replace(/\/$/, "")}${path}`, {
-      credentials: config.credentials ?? "omit",
-      ...options,
-      headers,
-    });
+    r = await (config.fetcher || fetch)(
+      `${config.baseUrl.replace(/\/$/, "")}${path}`,
+      {
+        credentials: config.credentials ?? "omit",
+        ...options,
+        headers,
+      },
+    );
   } catch {
     throw new ApiFailure(0, {
       code: "CONNECTION",
@@ -62,7 +70,7 @@ async function request<T>(
       correlationId: "",
     });
   }
-  await config.onResponse?.(r);
+  await config.onResponse?.(r, { token: token || null });
   if (r.status === 401 && token) await config.onUnauthorized?.();
   const body = await r.json().catch(() => null);
   if (!r.ok) {
@@ -109,7 +117,10 @@ async function request<T>(
     });
   return body as T;
 }
-export const api = createApiClient({baseUrl: "/api/v1", credentials: "include"});
+export const api = createApiClient({
+  baseUrl: "/api/v1",
+  credentials: "include",
+});
 export const mutation = (body: unknown, key?: string): RequestInit => ({
   method: "POST",
   headers: key ? { "Idempotency-Key": key } : {},

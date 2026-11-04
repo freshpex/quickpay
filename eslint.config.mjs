@@ -8,10 +8,16 @@ export default ts.config(
       "**/node_modules/**",
       "test-results/**",
       "playwright-report/**",
+      "apps/mobile/.expo/**",
+      "apps/mobile/dist/**",
+      "apps/mobile/android/**",
+      "apps/mobile/ios/**",
+      ".local/**",
     ],
   },
   js.configs.recommended,
   ...ts.configs.recommended,
+  { files: ["apps/mobile/*.cjs"], rules: {"@typescript-eslint/no-require-imports": "off"} },
   {
     languageOptions: {
       globals: {
@@ -38,6 +44,11 @@ export default ts.config(
         IntersectionObserver: "readonly",
         HTMLVideoElement: "readonly",
         AbortSignal: "readonly",
+        AbortController: "readonly",
+        __DEV__: "readonly",
+        require: "readonly",
+        module: "readonly",
+        __dirname: "readonly",
       },
     },
     rules: {

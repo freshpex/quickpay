@@ -80,6 +80,49 @@ export function openapi() {
   ) => ({ type: "object", properties, required });
   const str = { type: "string" };
   add(
+    "/wallet/capabilities",
+    "get",
+    "Read wallet availability, deposit methods, exact kobo fees and limits",
+    "Wallet",
+  );
+  add(
+    "/payments/by-key/{key}",
+    "get",
+    "Recover an owned operation by idempotency key; transaction is null when absent",
+    "Payments",
+  );
+  add(
+    "/notifications/preferences",
+    "get",
+    "Read push availability and account preference",
+    "Notifications",
+  );
+  add(
+    "/notifications/preferences",
+    "patch",
+    "Set push preference; inbox stays enabled",
+    "Notifications",
+    object({ pushEnabled: { type: "boolean" } }),
+  );
+  add(
+    "/notifications/devices",
+    "post",
+    "Register/reassign this authenticated installation; encrypted push token",
+    "Notifications",
+    object({
+      installationId: { type: "string", format: "uuid" },
+      token: { type: "string", maxLength: 256, writeOnly: true },
+      platform: { enum: ["ios", "android"] },
+    }),
+  );
+  add(
+    "/notifications/devices",
+    "delete",
+    "Revoke only an owned installation",
+    "Notifications",
+    object({ installationId: { type: "string", format: "uuid" } }),
+  );
+  add(
     "/auth/sign-up/email",
     "post",
     "Create account and queue contact verification",

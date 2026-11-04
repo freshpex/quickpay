@@ -85,7 +85,8 @@ export async function createOperation(
       503,
     );
     assert(
-      BigInt(v.amount) >= BigInt(walletLimits.minimum) && BigInt(v.amount) <= BigInt(walletLimits.maximum),
+      BigInt(v.amount) >= BigInt(walletLimits.minimum) &&
+        BigInt(v.amount) <= BigInt(walletLimits.maximum),
       "LIMIT",
       "Add between ₦100 and ₦1,000,000.",
     );
@@ -189,7 +190,8 @@ export async function createOperation(
       503,
     );
     assert(
-      BigInt(v.amount) >= BigInt(walletLimits.minimum) && BigInt(v.amount) <= BigInt(walletLimits.maximum),
+      BigInt(v.amount) >= BigInt(walletLimits.minimum) &&
+        BigInt(v.amount) <= BigInt(walletLimits.maximum),
       "LIMIT",
       "Withdraw between ₦100 and ₦1,000,000.",
     );

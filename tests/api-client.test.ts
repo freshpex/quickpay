@@ -1,6 +1,18 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { api } from "../packages/api-client/src/index";
+import { api, createApiClient } from "../packages/api-client/src/index";
 afterEach(() => vi.unstubAllGlobals());
+it("uses the configured native origin, signed bearer and revocation hook without browser cookies", async () => {
+  const expired = vi.fn();
+  const send = vi.fn().mockResolvedValue(Response.json({error: {code: "UNAUTHENTICATED", message: "Please sign in."}}, {status: 401}));
+  const client = createApiClient({baseUrl: "https://api.example/api/v1", getToken: async () => "signed-session", fetcher: send, onUnauthorized: expired});
+  await expect(client("/wallet")).rejects.toMatchObject({status: 401});
+  expect(send.mock.calls[0][0]).toBe("https://api.example/api/v1/wallet");
+  expect(send.mock.calls[0][1].headers.get("Authorization")).toBe("Bearer signed-session");
+  expect(send.mock.calls[0][1].credentials).toBe("omit");
+  expect(expired).toHaveBeenCalledTimes(1);
+  await expect(client("https://evil.example/steal")).rejects.toThrow("relative");
+  expect(send).toHaveBeenCalledTimes(1);
+});
 it("lets the browser supply multipart boundaries for file uploads", async () => {
   const send = vi.fn().mockResolvedValue(Response.json({ id: "uploaded" }));
   vi.stubGlobal("fetch", send);

@@ -22,6 +22,8 @@ const childEnv: NodeJS.ProcessEnv = {
   MAILJET_SECRET_KEY: "",
   MAILJET_FROM_EMAIL: "",
   SMS_ENABLED: "false",
+  PUSH_ENABLED: "false",
+  EXPO_ACCESS_TOKEN: "",
 };
 const pnpm = process.env.npm_execpath;
 if (!pnpm) throw new Error("Run this script with pnpm qa:serve.");
