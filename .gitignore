@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.next-qa/
+.env
+.env.local
+*.log
+test-results/
+playwright-report/
+coverage/
+.local/
+*.tsbuildinfo
+.local
+assets/brand/quick-pay-brand-pack-v1.zip
+docs/operations/RENDER.md

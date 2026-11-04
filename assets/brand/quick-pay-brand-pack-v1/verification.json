@@ -1,0 +1,43 @@
+{
+  "svg_count": 26,
+  "png_count": 119,
+  "xml_count": 8,
+  "errors": [],
+  "favicon_sizes": [
+    [
+      16,
+      16
+    ],
+    [
+      24,
+      24
+    ],
+    [
+      32,
+      32
+    ],
+    [
+      48,
+      48
+    ],
+    [
+      64,
+      64
+    ],
+    [
+      128,
+      128
+    ],
+    [
+      256,
+      256
+    ]
+  ],
+  "android_safe_circle_diameter_dp": 62,
+  "apple_modern_appearances": [
+    "default",
+    "dark",
+    "tinted"
+  ],
+  "native_compilation_verified": false
+}

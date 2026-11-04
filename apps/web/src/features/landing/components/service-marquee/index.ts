@@ -1,0 +1,1 @@
+export { ServiceMarquee } from "./ServiceMarquee";

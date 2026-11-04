@@ -1,0 +1,39 @@
+@import "tailwindcss";
+@source '../';
+@theme {
+  --color-brand: #6d28d9;
+  --color-deep: #2e1065;
+  --color-paper: #faf9ff;
+  --color-lime: #d9f86c;
+  --color-ink: #191425;
+  --font-sans: "Arial", "Helvetica Neue", sans-serif;
+}
+@layer base {
+  html {
+    scroll-padding-top: 100px;
+  }
+  body {
+    margin: 0;
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled),
+  a {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 3px solid #6d28d9;
+    outline-offset: 4px;
+  }
+  ::selection {
+    background: #d9f86c;
+    color: #191425;
+  }
+}

@@ -1,0 +1,1 @@
+CREATE TABLE referral_holds(user_id text PRIMARY KEY REFERENCES users(id),active boolean NOT NULL DEFAULT true,reason text NOT NULL,actor_id text NOT NULL REFERENCES users(id),updated_at timestamptz NOT NULL DEFAULT now());

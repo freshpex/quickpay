@@ -1,0 +1,807 @@
+[
+  {
+    "path": "android/adaptive/background.svg",
+    "bytes": 198,
+    "sha256": "1c8170cd13aaf280ac175b4b9d97ec66639e2bdf144d9fe22441addcf9359d26"
+  },
+  {
+    "path": "android/adaptive/foreground-432.png",
+    "bytes": 3952,
+    "sha256": "a21f0563fb093d77a87a5ca494a3e7ae860f83bf1141300fbad13b3fa84b9112"
+  },
+  {
+    "path": "android/adaptive/foreground.svg",
+    "bytes": 6417,
+    "sha256": "91d472ba4cdc9141bc91d2338c2e850b2f903da4fe99f0630045bc0e53d53b11"
+  },
+  {
+    "path": "android/adaptive/monochrome-432.png",
+    "bytes": 3952,
+    "sha256": "a21f0563fb093d77a87a5ca494a3e7ae860f83bf1141300fbad13b3fa84b9112"
+  },
+  {
+    "path": "android/adaptive/monochrome.svg",
+    "bytes": 6417,
+    "sha256": "91d472ba4cdc9141bc91d2338c2e850b2f903da4fe99f0630045bc0e53d53b11"
+  },
+  {
+    "path": "android/adaptive/png/hdpi/foreground.png",
+    "bytes": 1203,
+    "sha256": "4d436113a59e483b5eeda02d432cb983ac5ff86db2c0e9fc165fa49be1d63201"
+  },
+  {
+    "path": "android/adaptive/png/hdpi/monochrome.png",
+    "bytes": 1203,
+    "sha256": "4d436113a59e483b5eeda02d432cb983ac5ff86db2c0e9fc165fa49be1d63201"
+  },
+  {
+    "path": "android/adaptive/png/mdpi/foreground.png",
+    "bytes": 772,
+    "sha256": "f3e2dd7456cf530ea415a9a0f1b18d710308438fffd55f7fee2c4336773e1994"
+  },
+  {
+    "path": "android/adaptive/png/mdpi/monochrome.png",
+    "bytes": 772,
+    "sha256": "f3e2dd7456cf530ea415a9a0f1b18d710308438fffd55f7fee2c4336773e1994"
+  },
+  {
+    "path": "android/adaptive/png/xhdpi/foreground.png",
+    "bytes": 1698,
+    "sha256": "08994558dfc768d28088e4beb496f0ef62e92aef4fb92cba854024012a3d7471"
+  },
+  {
+    "path": "android/adaptive/png/xhdpi/monochrome.png",
+    "bytes": 1698,
+    "sha256": "08994558dfc768d28088e4beb496f0ef62e92aef4fb92cba854024012a3d7471"
+  },
+  {
+    "path": "android/adaptive/png/xxhdpi/foreground.png",
+    "bytes": 2697,
+    "sha256": "29c96d9cdb8692e83961ebe4325a676a8892f820478c30f89e0e23b855353ae0"
+  },
+  {
+    "path": "android/adaptive/png/xxhdpi/monochrome.png",
+    "bytes": 2697,
+    "sha256": "29c96d9cdb8692e83961ebe4325a676a8892f820478c30f89e0e23b855353ae0"
+  },
+  {
+    "path": "android/adaptive/png/xxxhdpi/foreground.png",
+    "bytes": 3952,
+    "sha256": "a21f0563fb093d77a87a5ca494a3e7ae860f83bf1141300fbad13b3fa84b9112"
+  },
+  {
+    "path": "android/adaptive/png/xxxhdpi/monochrome.png",
+    "bytes": 3952,
+    "sha256": "a21f0563fb093d77a87a5ca494a3e7ae860f83bf1141300fbad13b3fa84b9112"
+  },
+  {
+    "path": "android/google-play-512.png",
+    "bytes": 7944,
+    "sha256": "de31f4c3b1fdddba58e88659b4c9562a979fe2722b6d5cbc638ac3e2ab03071e"
+  },
+  {
+    "path": "android/manifest-example.xml",
+    "bytes": 271,
+    "sha256": "defbc9d7188b15ce96ad00ffee9b5ceb072e555686f1467cfc46901777db0873"
+  },
+  {
+    "path": "android/res/drawable/ic_launcher_foreground.xml",
+    "bytes": 6582,
+    "sha256": "4e9e90246d66f6d9a27e1a59ae65569ff5636b539a6acf4f47fbf39cd52d3564"
+  },
+  {
+    "path": "android/res/drawable/ic_launcher_monochrome.xml",
+    "bytes": 6582,
+    "sha256": "4e9e90246d66f6d9a27e1a59ae65569ff5636b539a6acf4f47fbf39cd52d3564"
+  },
+  {
+    "path": "android/res/mipmap-anydpi-v26/ic_launcher.xml",
+    "bytes": 220,
+    "sha256": "16c0af1f5e10699f9e79f286f379c41408940c4dbf056c8cd4035f846d6ad354"
+  },
+  {
+    "path": "android/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+    "bytes": 220,
+    "sha256": "16c0af1f5e10699f9e79f286f379c41408940c4dbf056c8cd4035f846d6ad354"
+  },
+  {
+    "path": "android/res/mipmap-anydpi-v33/ic_launcher.xml",
+    "bytes": 285,
+    "sha256": "32cfdd674c198cfc64e003eebe3c65d7f081aefd7fd5069a483f5356452ac042"
+  },
+  {
+    "path": "android/res/mipmap-anydpi-v33/ic_launcher_round.xml",
+    "bytes": 285,
+    "sha256": "32cfdd674c198cfc64e003eebe3c65d7f081aefd7fd5069a483f5356452ac042"
+  },
+  {
+    "path": "android/res/mipmap-hdpi/ic_launcher.png",
+    "bytes": 1068,
+    "sha256": "0dc3172ca79893b9e256049d0c27038f86536cb22597b61af0155634eaba3090"
+  },
+  {
+    "path": "android/res/mipmap-hdpi/ic_launcher_round.png",
+    "bytes": 2298,
+    "sha256": "6a0518878e33deeb11a20b765ed226652e0aa3775e64b38d7b231406c199caa0"
+  },
+  {
+    "path": "android/res/mipmap-mdpi/ic_launcher.png",
+    "bytes": 797,
+    "sha256": "a60b315327200e2d6f35019cca32e8d9d7a8c679efd21549303fcfd905f1f7e1"
+  },
+  {
+    "path": "android/res/mipmap-mdpi/ic_launcher_round.png",
+    "bytes": 1609,
+    "sha256": "08f2ee88fbe82177aa1e91e21641a976a9614131bdd4e91cc4a0a01cc86d642e"
+  },
+  {
+    "path": "android/res/mipmap-xhdpi/ic_launcher.png",
+    "bytes": 1425,
+    "sha256": "d060622506b58e81af6ae6951a4764211bd09b016bf59039ca698358c515de55"
+  },
+  {
+    "path": "android/res/mipmap-xhdpi/ic_launcher_round.png",
+    "bytes": 3254,
+    "sha256": "a1fc12ffbac4227137ec0196ee4efd57781518c779585f605bb8654c99cb35d0"
+  },
+  {
+    "path": "android/res/mipmap-xxhdpi/ic_launcher.png",
+    "bytes": 2059,
+    "sha256": "0e31ad07eb749d192f379bd2cadd1581e2d2c75114a13e0b4c84f3a33d7cc0b5"
+  },
+  {
+    "path": "android/res/mipmap-xxhdpi/ic_launcher_round.png",
+    "bytes": 4858,
+    "sha256": "1ed7714617e75702a75614741cc9419f812e834924815cb59cc6f5f4e481407e"
+  },
+  {
+    "path": "android/res/mipmap-xxxhdpi/ic_launcher.png",
+    "bytes": 2727,
+    "sha256": "809c94d36cff34abee401bfccaa97bf427a2f17e4bf9c95b871c8077466c6c9e"
+  },
+  {
+    "path": "android/res/mipmap-xxxhdpi/ic_launcher_round.png",
+    "bytes": 6438,
+    "sha256": "431719219e8cf316c8f00fc5569faaaf2f3373870f415ec1c9c43d650a667fd4"
+  },
+  {
+    "path": "android/res/values/colors.xml",
+    "bytes": 78,
+    "sha256": "10f6c4ab4879062c4767279ff759614d87a71daff2eb87fff8c6381b54777e61"
+  },
+  {
+    "path": "app-icons/app-icon-dark-1024.png",
+    "bytes": 16920,
+    "sha256": "7a8e5e7e256c62efe595a286abf93bdf6fcf926b5efda35fe95e027f8fddb68a"
+  },
+  {
+    "path": "app-icons/app-icon-dark.svg",
+    "bytes": 6451,
+    "sha256": "2eab92150c5d698929765598715c2460c59bd650f1f5056da762d0c6c49d4d80"
+  },
+  {
+    "path": "app-icons/app-icon-light-1024.png",
+    "bytes": 17003,
+    "sha256": "779a9dd137674def0d8789465b2617f9f0a43e5df117df2e0bf519497af140c0"
+  },
+  {
+    "path": "app-icons/app-icon-master-1024.png",
+    "bytes": 17142,
+    "sha256": "3f060381098fd6807eb32c43599691f7d37d07c6ad46c27ae5f9fe603e5559b4"
+  },
+  {
+    "path": "app-icons/app-icon-master.svg",
+    "bytes": 6451,
+    "sha256": "d0ad5735a23889d5cdbc07a4f79d3da2c38f36b302b592e8293ebfdd4d2d5e3e"
+  },
+  {
+    "path": "apple/app-store-1024.png",
+    "bytes": 17142,
+    "sha256": "3f060381098fd6807eb32c43599691f7d37d07c6ad46c27ae5f9fe603e5559b4"
+  },
+  {
+    "path": "apple/icon-composer-source/background.svg",
+    "bytes": 204,
+    "sha256": "2148c49af8773a8b9536e95a57b788e2c6d3aa2a563e4339871d3a269a9b5f06"
+  },
+  {
+    "path": "apple/icon-composer-source/foreground.svg",
+    "bytes": 6395,
+    "sha256": "e7f461bb43b4862eb1c668736196e4ae6a98965a42cd43cea59ede8cf58fac66"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/app-store-1024.png",
+    "bytes": 17142,
+    "sha256": "3f060381098fd6807eb32c43599691f7d37d07c6ad46c27ae5f9fe603e5559b4"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/Contents.json",
+    "bytes": 2351,
+    "sha256": "ddd76763a74620cea84e4c0346cec472f1dd8e70db18786663fdceba007d4db9"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/ipad-20pt@1x.png",
+    "bytes": 395,
+    "sha256": "32694130edd270177081a79a630c561b80ed59a36d22f54a88ffe953c7bbcff1"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/ipad-20pt@2x.png",
+    "bytes": 659,
+    "sha256": "77bbbcdf7c6e758d2132d0c37249c36422ec223844e29bfb916ce9ebe8dab8f6"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/ipad-29pt@1x.png",
+    "bytes": 515,
+    "sha256": "93c220feac2410bf265410ff8a2d09f13a52857d08006bdbeb3024eb082e3702"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/ipad-29pt@2x.png",
+    "bytes": 885,
+    "sha256": "ddeba11377f34e58330c7239f4c7bae765c36b7bf9ecfb4357281b029df69d1b"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/ipad-40pt@1x.png",
+    "bytes": 659,
+    "sha256": "77bbbcdf7c6e758d2132d0c37249c36422ec223844e29bfb916ce9ebe8dab8f6"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/ipad-40pt@2x.png",
+    "bytes": 1202,
+    "sha256": "e089de53b48f42844e7d2771805a3d408f50b336783a3bddd4f4e624c457cbf6"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/ipad-76pt@1x.png",
+    "bytes": 1134,
+    "sha256": "6531ec0534fd82a4bf668c1a6b6b8a4b43c104c45e303440f6763059ac042534"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/ipad-76pt@2x.png",
+    "bytes": 2162,
+    "sha256": "7f2770ebc8b6d65db3f4f84084278b1c64a8f9fcc09b317ef588bed4cdc03654"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/ipad-83.5pt@2x.png",
+    "bytes": 2325,
+    "sha256": "928a0ebb0136e738ec5a8e7463540ff122a01252da47fd0a3727a20f524048e3"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/iphone-20pt@2x.png",
+    "bytes": 659,
+    "sha256": "77bbbcdf7c6e758d2132d0c37249c36422ec223844e29bfb916ce9ebe8dab8f6"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/iphone-20pt@3x.png",
+    "bytes": 925,
+    "sha256": "d246e2be5ce39ddbd56c44ca220407b743b0ecfe908bc300ccc2cd9464d14278"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/iphone-29pt@2x.png",
+    "bytes": 885,
+    "sha256": "ddeba11377f34e58330c7239f4c7bae765c36b7bf9ecfb4357281b029df69d1b"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/iphone-29pt@3x.png",
+    "bytes": 1244,
+    "sha256": "17690e9fd62a35387904d3d1d833470caefa81cc81af63ae52e8a69026fe8fa2"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/iphone-40pt@2x.png",
+    "bytes": 1202,
+    "sha256": "e089de53b48f42844e7d2771805a3d408f50b336783a3bddd4f4e624c457cbf6"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/iphone-40pt@3x.png",
+    "bytes": 1720,
+    "sha256": "a8a230bbe6e2925e599ef5ec55d7d04da011953b35d06ea0e863d8f07309023e"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/iphone-60pt@2x.png",
+    "bytes": 1720,
+    "sha256": "a8a230bbe6e2925e599ef5ec55d7d04da011953b35d06ea0e863d8f07309023e"
+  },
+  {
+    "path": "apple/legacy/AppIcon.appiconset/iphone-60pt@3x.png",
+    "bytes": 2668,
+    "sha256": "c2cc0ca1563edd59f499bd777cafc9f3583ee15c9eef73bd1f6b49487a2d2877"
+  },
+  {
+    "path": "apple/modern/AppIcon.appiconset/app-icon-dark-1024.png",
+    "bytes": 16920,
+    "sha256": "7a8e5e7e256c62efe595a286abf93bdf6fcf926b5efda35fe95e027f8fddb68a"
+  },
+  {
+    "path": "apple/modern/AppIcon.appiconset/app-icon-default-1024.png",
+    "bytes": 17142,
+    "sha256": "3f060381098fd6807eb32c43599691f7d37d07c6ad46c27ae5f9fe603e5559b4"
+  },
+  {
+    "path": "apple/modern/AppIcon.appiconset/app-icon-tinted-1024.png",
+    "bytes": 15528,
+    "sha256": "42a0ce499dc3881561094f211ceb64f43bc5f960834ef1a9db508b5e084261d6"
+  },
+  {
+    "path": "apple/modern/AppIcon.appiconset/Contents.json",
+    "bytes": 761,
+    "sha256": "5027599abcb136b938d1c267a0d8ffd325878039ba86f331ea615064c077b40e"
+  },
+  {
+    "path": "logos/png/quick-pay-black-1744w.png",
+    "bytes": 22583,
+    "sha256": "dfd68460bddf53f19d37df4b1a7e8034a27cafcbff307aefda2291e689ace56b"
+  },
+  {
+    "path": "logos/png/quick-pay-black-2616w.png",
+    "bytes": 36729,
+    "sha256": "5dbe9e90dff15fbce227fc69cbd1f0ae68716a1289ce7113fdd0cf38b2493712"
+  },
+  {
+    "path": "logos/png/quick-pay-black-436w.png",
+    "bytes": 4216,
+    "sha256": "7eddf9131b42c49df19e486ad7b627479651a3a5345783b3f161d44d9682adb7"
+  },
+  {
+    "path": "logos/png/quick-pay-black-872w.png",
+    "bytes": 9460,
+    "sha256": "6ca1cdb4c52d4a3d4650c8d9c50252ee5927f3d9471caacce75d3c07dff2468e"
+  },
+  {
+    "path": "logos/png/quick-pay-primary-1744w.png",
+    "bytes": 31277,
+    "sha256": "453892b96d773515722aca61921fe06e5939b3474b21af657574c5c1543ae555"
+  },
+  {
+    "path": "logos/png/quick-pay-primary-2616w.png",
+    "bytes": 50137,
+    "sha256": "8561bbf954c6ce0d1658c5d575546b5021c9bcf7b998ee11e191a06055dd66f0"
+  },
+  {
+    "path": "logos/png/quick-pay-primary-436w.png",
+    "bytes": 6661,
+    "sha256": "7901f3a6d52dda2ba4936d5af59e86e78a871539181f22022a1958db8b971e3f"
+  },
+  {
+    "path": "logos/png/quick-pay-primary-872w.png",
+    "bytes": 14260,
+    "sha256": "7cf8309345168ab923ebae92904e1f2c27d03691c6a5c6c011d0ce50a02d9640"
+  },
+  {
+    "path": "logos/png/quick-pay-violet-1744w.png",
+    "bytes": 31079,
+    "sha256": "5defc24ca9da02ca3358e4aa84dbe6d68942cc8e143331f55cd850c0223a986f"
+  },
+  {
+    "path": "logos/png/quick-pay-violet-2616w.png",
+    "bytes": 49962,
+    "sha256": "1fec894b586fb4602530da44040b36d353abeaf7ca216827d5ac04526421f06c"
+  },
+  {
+    "path": "logos/png/quick-pay-violet-436w.png",
+    "bytes": 6592,
+    "sha256": "fdc730d74e8372dae24838519618843b451d0889776d0e79e8bbcda7f06f951d"
+  },
+  {
+    "path": "logos/png/quick-pay-violet-872w.png",
+    "bytes": 14003,
+    "sha256": "7b1312b3c55836db079d687917b7c11d3bceda294adc956b3642012dadfaeb6e"
+  },
+  {
+    "path": "logos/png/quick-pay-white-1744w.png",
+    "bytes": 24643,
+    "sha256": "61d07712077a8f4ba2587faaec51d3408a21b9c69392070a5cd3575f230ceeff"
+  },
+  {
+    "path": "logos/png/quick-pay-white-2616w.png",
+    "bytes": 39844,
+    "sha256": "12ffe5f7e663388effa039d2c099ba608a28b1d29435ab439cef85a506d8e2f8"
+  },
+  {
+    "path": "logos/png/quick-pay-white-436w.png",
+    "bytes": 5023,
+    "sha256": "ec45fb05a528aab5ac336850f7cb50fdc1894912671d4b07098cc223e760cf31"
+  },
+  {
+    "path": "logos/png/quick-pay-white-872w.png",
+    "bytes": 10921,
+    "sha256": "f90529302602bda3618d4487348c2c180cd732e9d11879340c2b10a78c1ba597"
+  },
+  {
+    "path": "logos/svg/quick-pay-black.svg",
+    "bytes": 29632,
+    "sha256": "f1885b3d24a15fc176469955760efc3a143914cd48376b55a43579e66e8817b2"
+  },
+  {
+    "path": "logos/svg/quick-pay-primary.svg",
+    "bytes": 29632,
+    "sha256": "ce1d87bdba97c18f7f86cfc072e600fdbc35cf678e3a04acc1141107a31f0372"
+  },
+  {
+    "path": "logos/svg/quick-pay-violet.svg",
+    "bytes": 29632,
+    "sha256": "be94aeefd79aa96049bb7d3ddf42f182842b7788b608eafce87b972b80921791"
+  },
+  {
+    "path": "logos/svg/quick-pay-white.svg",
+    "bytes": 29632,
+    "sha256": "fcb45128057d63b0ad7db244630999c5a239e31264df257f6e45c92d7189a704"
+  },
+  {
+    "path": "mobile-headers/compact-dark.svg",
+    "bytes": 6400,
+    "sha256": "379d2e3bccd472791b2e766691b8efdc00a118a46199303b58f975ae6ff2f7cd"
+  },
+  {
+    "path": "mobile-headers/compact-dark@1x.png",
+    "bytes": 429,
+    "sha256": "c92fd2637d0c86f3b4960a8eb12c1d0e068668a10d025db4ea501ab7be2e88fb"
+  },
+  {
+    "path": "mobile-headers/compact-dark@2x.png",
+    "bytes": 761,
+    "sha256": "a22c12172bee3a9e65463ce2bded2c553b2fbafacd72ea15aaeac67d0b8fcbfd"
+  },
+  {
+    "path": "mobile-headers/compact-dark@3x.png",
+    "bytes": 1175,
+    "sha256": "62f463d87c9e70ac31f23af8c6037326acc4da4a1beb9cb5da5e5efa031bf955"
+  },
+  {
+    "path": "mobile-headers/compact-light.svg",
+    "bytes": 6400,
+    "sha256": "d3126fbc3542a242f6579978657d13314fddc4829a9c5536710e177754be4338"
+  },
+  {
+    "path": "mobile-headers/compact-light@1x.png",
+    "bytes": 656,
+    "sha256": "5c35002efcd84a83df30f16b2361dce95dcc11787745f948d5e26a773deef5a2"
+  },
+  {
+    "path": "mobile-headers/compact-light@2x.png",
+    "bytes": 1116,
+    "sha256": "3dda084979b6c8d50fd4d992e48b4a8cdb3fb235eceb6a7d436d64aeeee5522b"
+  },
+  {
+    "path": "mobile-headers/compact-light@3x.png",
+    "bytes": 1635,
+    "sha256": "898dd5aaa771b02524c03cf8da01f575a027281246aad71e6247d5cda83b44ed"
+  },
+  {
+    "path": "mobile-headers/header-dark.svg",
+    "bytes": 29632,
+    "sha256": "fcb45128057d63b0ad7db244630999c5a239e31264df257f6e45c92d7189a704"
+  },
+  {
+    "path": "mobile-headers/header-dark@1x.png",
+    "bytes": 1774,
+    "sha256": "47977de7fb8ecbd67f06083ad8ddd472e74cfae054a84d093f88f3eee241878c"
+  },
+  {
+    "path": "mobile-headers/header-dark@2x.png",
+    "bytes": 3859,
+    "sha256": "6f6278b1cf832a1507fb0adb9969a08790a7ce6ddc8bdef1eacec642303b619d"
+  },
+  {
+    "path": "mobile-headers/header-dark@3x.png",
+    "bytes": 6208,
+    "sha256": "2ce8796679e74c0f50f2404962a96fc8b757ce80a6fb293dcc471575d8e3a605"
+  },
+  {
+    "path": "mobile-headers/header-light.svg",
+    "bytes": 29632,
+    "sha256": "ce1d87bdba97c18f7f86cfc072e600fdbc35cf678e3a04acc1141107a31f0372"
+  },
+  {
+    "path": "mobile-headers/header-light@1x.png",
+    "bytes": 2841,
+    "sha256": "de0b3ef573a5498ec2434ebd6add6fcc4d57becc80a17e3e4ecda8f65b636cb9"
+  },
+  {
+    "path": "mobile-headers/header-light@2x.png",
+    "bytes": 5387,
+    "sha256": "f3fe54405266351565cff32f53ceab260c97f2292b06672f2e002dc77e8a65c1"
+  },
+  {
+    "path": "mobile-headers/header-light@3x.png",
+    "bytes": 8267,
+    "sha256": "da18f0a0859253a5a4f968acc696b82afab49258e6e529b2f56c4002868aab45"
+  },
+  {
+    "path": "preview/brand-pack-preview.png",
+    "bytes": 86531,
+    "sha256": "3c89109f9b9317d57457344315843533890bbdbac4086533900c7bd00bbd3ec7"
+  },
+  {
+    "path": "preview/brand-pack-preview.svg",
+    "bytes": 145035,
+    "sha256": "de992915ef9b8bca08032d1b12f8fe933a5b842c1eddd72d882d87de0a2421a8"
+  },
+  {
+    "path": "README.md",
+    "bytes": 3557,
+    "sha256": "b0d75d9085e8cb8e9202952ac44187cb7d2374702acc831e0a22ae87d6f5634c"
+  },
+  {
+    "path": "source/build_brand_pack.py",
+    "bytes": 18858,
+    "sha256": "e3c1821b3b1548d0de826f5bcd2cc6851843ef1e8df24de6bf1afaca8af87774"
+  },
+  {
+    "path": "source/symbol-trace-mask.png",
+    "bytes": 3987,
+    "sha256": "1e1d43c83fc228c5f45f5568ffb9209eebdf793540fd4eb73dc962c1af8aef78"
+  },
+  {
+    "path": "source/symbol-trace.svg",
+    "bytes": 6347,
+    "sha256": "546e3670577f5180ed19d5d63eb679fc082ad3eb98627f358cbead7c0e7b543f"
+  },
+  {
+    "path": "source/wordmark-trace-mask.png",
+    "bytes": 8169,
+    "sha256": "22f73c079ce66a4ab076ab77b885c7d2b800d9b103b6838b453d3b41e7bad2bd"
+  },
+  {
+    "path": "source/wordmark-trace.svg",
+    "bytes": 23503,
+    "sha256": "27df52ddf5015749f7f631527dd894279788dcbe22cec71d4ae90520bd4a57c6"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-black-1024.png",
+    "bytes": 17394,
+    "sha256": "d3e6e183cdffd6f932dbea8d6a61a23645ec5b6f937a4969d259c48245080df5"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-black-128.png",
+    "bytes": 1243,
+    "sha256": "310e6ac04af92726552d0e85f8bf8b2de2b284d6733a03189d49b8f2f8d339e1"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-black-256.png",
+    "bytes": 3096,
+    "sha256": "3eef43da96176491b5b3f5ad48bd092a5cced82707cf11a8670cd38f515e0a42"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-black-32.png",
+    "bytes": 390,
+    "sha256": "c8a24b90ef736b9e354aa43c4cb287d1b5da39206f20d983de724a4a6c1ec3a2"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-black-48.png",
+    "bytes": 527,
+    "sha256": "8c9601c3f29b729378f56b3c7e50ed6e6f4aaedbaf82c54fe0e1125712855ca5"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-black-512.png",
+    "bytes": 6985,
+    "sha256": "0af53faba7215f94efff6fc0e7ea7a0f60f49da307b1d521287451e76dcc112a"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-black-64.png",
+    "bytes": 637,
+    "sha256": "285d36390c36e9f0b234f928f0a816ef48f59d567cadf44bfe006314c45af95a"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-violet-1024.png",
+    "bytes": 21763,
+    "sha256": "2ea98f53d5c7a5a468fb1ca389379472d4e7a426a01a46dab5f0c66f97c4e794"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-violet-128.png",
+    "bytes": 2109,
+    "sha256": "e92798ce7a5ef4bd7fdb21684c4c8d345b7d12d0625f3302ca07ae638ffe8532"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-violet-256.png",
+    "bytes": 4433,
+    "sha256": "b67a5ac471b1c340b12c4c8bbedb4a9a8d7b49a9cc1dc2920021c86698500f2b"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-violet-32.png",
+    "bytes": 656,
+    "sha256": "5c35002efcd84a83df30f16b2361dce95dcc11787745f948d5e26a773deef5a2"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-violet-48.png",
+    "bytes": 902,
+    "sha256": "3802c0726094663b04eeb7534ab17b315100f394e18a9133d8b1657316ba5926"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-violet-512.png",
+    "bytes": 9372,
+    "sha256": "0624b3836f6fdc2768e59e9ef0fdd865d6ab4a37ff368fd6b8edd1564df2b006"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-violet-64.png",
+    "bytes": 1116,
+    "sha256": "3dda084979b6c8d50fd4d992e48b4a8cdb3fb235eceb6a7d436d64aeeee5522b"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-white-1024.png",
+    "bytes": 18627,
+    "sha256": "e94d7ccf16d6bda28c9b903ca192c0dc23de38b13864e17462de9b9064e74524"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-white-128.png",
+    "bytes": 1563,
+    "sha256": "51e0c5ffe84fc40e67fa4e234abf8943d9eeb8132fa81a46447d785078371f87"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-white-256.png",
+    "bytes": 3675,
+    "sha256": "e8e69a0fd66c5b8485952eecb546762f5188472bc4e12066104f7f2c1aeb7c95"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-white-32.png",
+    "bytes": 429,
+    "sha256": "c92fd2637d0c86f3b4960a8eb12c1d0e068668a10d025db4ea501ab7be2e88fb"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-white-48.png",
+    "bytes": 607,
+    "sha256": "4fde1e1d87935ea7fcec15d2dd0852d0d235893b66b35a4fd2b64bee5fd50d3e"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-white-512.png",
+    "bytes": 7808,
+    "sha256": "31e3e18078987adfd95382ccc7f4ed5f9e13ca22aaadda158ae96aef0a8cfd1b"
+  },
+  {
+    "path": "symbols/png/quick-pay-symbol-white-64.png",
+    "bytes": 761,
+    "sha256": "a22c12172bee3a9e65463ce2bded2c553b2fbafacd72ea15aaeac67d0b8fcbfd"
+  },
+  {
+    "path": "symbols/svg/quick-pay-symbol-black.svg",
+    "bytes": 6400,
+    "sha256": "84fef9f7dd41f2a99ff9eab3cb04726170411a5d3d65134d3b2f2ffe229ac92f"
+  },
+  {
+    "path": "symbols/svg/quick-pay-symbol-violet.svg",
+    "bytes": 6400,
+    "sha256": "d3126fbc3542a242f6579978657d13314fddc4829a9c5536710e177754be4338"
+  },
+  {
+    "path": "symbols/svg/quick-pay-symbol-white.svg",
+    "bytes": 6400,
+    "sha256": "379d2e3bccd472791b2e766691b8efdc00a118a46199303b58f975ae6ff2f7cd"
+  },
+  {
+    "path": "verification.json",
+    "bytes": 528,
+    "sha256": "b71ec779c917e76d34bc46bac69811565e11c8cc222410e0e13bf299f3f02841"
+  },
+  {
+    "path": "website/apple-touch-icon-120x120.png",
+    "bytes": 1720,
+    "sha256": "a8a230bbe6e2925e599ef5ec55d7d04da011953b35d06ea0e863d8f07309023e"
+  },
+  {
+    "path": "website/apple-touch-icon-152x152.png",
+    "bytes": 2162,
+    "sha256": "7f2770ebc8b6d65db3f4f84084278b1c64a8f9fcc09b317ef588bed4cdc03654"
+  },
+  {
+    "path": "website/apple-touch-icon-167x167.png",
+    "bytes": 2325,
+    "sha256": "928a0ebb0136e738ec5a8e7463540ff122a01252da47fd0a3727a20f524048e3"
+  },
+  {
+    "path": "website/apple-touch-icon-180x180.png",
+    "bytes": 2668,
+    "sha256": "c2cc0ca1563edd59f499bd777cafc9f3583ee15c9eef73bd1f6b49487a2d2877"
+  },
+  {
+    "path": "website/apple-touch-icon.png",
+    "bytes": 2668,
+    "sha256": "c2cc0ca1563edd59f499bd777cafc9f3583ee15c9eef73bd1f6b49487a2d2877"
+  },
+  {
+    "path": "website/favicon-16x16.png",
+    "bytes": 421,
+    "sha256": "bd06c723cb8f1cc53c3adcacfb174b785b6adb13f116cc3f1594bc41e7400618"
+  },
+  {
+    "path": "website/favicon-32x32.png",
+    "bytes": 754,
+    "sha256": "3449c187ddbaa7147ee707ebbecd61bfccf2c7aed33f52c842b56842a7eeb2a3"
+  },
+  {
+    "path": "website/favicon-48x48.png",
+    "bytes": 1054,
+    "sha256": "68c6e0dbb3056c95764895f6dcf5c42866c8fa8da3e779fbe009ed6b340f7535"
+  },
+  {
+    "path": "website/favicon-64x64.png",
+    "bytes": 1293,
+    "sha256": "db68000891f4be20c75b719b0668c602ef182fcd0ba3f059f818931db7d49166"
+  },
+  {
+    "path": "website/favicon-96x96.png",
+    "bytes": 2015,
+    "sha256": "42f360040ba4c1d9c0e62bd2d4f82bd0ec0fcfc07de08ce4e0ce400ef3f6bfd4"
+  },
+  {
+    "path": "website/favicon-source-256.png",
+    "bytes": 5472,
+    "sha256": "2d791fabc590872be7c37e38098d86dab29cea7bea39b8786816733f3ecc0a4b"
+  },
+  {
+    "path": "website/favicon.ico",
+    "bytes": 21630,
+    "sha256": "134cd9d51d1fad5f91a84545fc50ba3f73b96afa68aeb7dc725e663c91c53138"
+  },
+  {
+    "path": "website/favicon.svg",
+    "bytes": 6479,
+    "sha256": "5478bfffc20e6542c3db6b41859918c655c9a15e8350326592ca4b99b1a1359f"
+  },
+  {
+    "path": "website/footer-dark.svg",
+    "bytes": 29632,
+    "sha256": "fcb45128057d63b0ad7db244630999c5a239e31264df257f6e45c92d7189a704"
+  },
+  {
+    "path": "website/footer-dark@2x.png",
+    "bytes": 10921,
+    "sha256": "f90529302602bda3618d4487348c2c180cd732e9d11879340c2b10a78c1ba597"
+  },
+  {
+    "path": "website/footer-light.svg",
+    "bytes": 29632,
+    "sha256": "ce1d87bdba97c18f7f86cfc072e600fdbc35cf678e3a04acc1141107a31f0372"
+  },
+  {
+    "path": "website/footer-light@2x.png",
+    "bytes": 14260,
+    "sha256": "7cf8309345168ab923ebae92904e1f2c27d03691c6a5c6c011d0ce50a02d9640"
+  },
+  {
+    "path": "website/head-example.html",
+    "bytes": 457,
+    "sha256": "d02aa632206a7748d067e315fed5a4746dcbbedcecaf73bbc53d413b00d91d38"
+  },
+  {
+    "path": "website/header-dark.svg",
+    "bytes": 29632,
+    "sha256": "fcb45128057d63b0ad7db244630999c5a239e31264df257f6e45c92d7189a704"
+  },
+  {
+    "path": "website/header-dark@2x.png",
+    "bytes": 10921,
+    "sha256": "f90529302602bda3618d4487348c2c180cd732e9d11879340c2b10a78c1ba597"
+  },
+  {
+    "path": "website/header-light.svg",
+    "bytes": 29632,
+    "sha256": "ce1d87bdba97c18f7f86cfc072e600fdbc35cf678e3a04acc1141107a31f0372"
+  },
+  {
+    "path": "website/header-light@2x.png",
+    "bytes": 14260,
+    "sha256": "7cf8309345168ab923ebae92904e1f2c27d03691c6a5c6c011d0ce50a02d9640"
+  },
+  {
+    "path": "website/pwa-icon-192.png",
+    "bytes": 2727,
+    "sha256": "809c94d36cff34abee401bfccaa97bf427a2f17e4bf9c95b871c8077466c6c9e"
+  },
+  {
+    "path": "website/pwa-icon-512.png",
+    "bytes": 7944,
+    "sha256": "de31f4c3b1fdddba58e88659b4c9562a979fe2722b6d5cbc638ac3e2ab03071e"
+  },
+  {
+    "path": "website/pwa-maskable-192.png",
+    "bytes": 2595,
+    "sha256": "e3e3de9c89813a404fe438e392615fd3a3c0e8c0e32dbb5470827afafe36feb5"
+  },
+  {
+    "path": "website/pwa-maskable-512.png",
+    "bytes": 7535,
+    "sha256": "443f6098592a5ea96c0c8326cbc03a7daeff9e14a341b8cae76231d0dca3501f"
+  },
+  {
+    "path": "website/site.webmanifest",
+    "bytes": 746,
+    "sha256": "3324537a11c43b149b2163efafdaf1589ba7cf9864ce50998de4d3f5da65e9bc"
+  }
+]

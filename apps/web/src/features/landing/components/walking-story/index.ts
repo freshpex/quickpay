@@ -1,0 +1,1 @@
+export { WalkingStory } from "./WalkingStory";

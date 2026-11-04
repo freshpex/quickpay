@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: quickpay
+      POSTGRES_USER: quickpay
+      POSTGRES_PASSWORD: local-development-only
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["quickpay_pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quickpay"]
+      interval: 3s
+      retries: 20
+volumes:
+  quickpay_pg:
