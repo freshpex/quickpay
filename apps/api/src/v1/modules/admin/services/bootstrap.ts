@@ -23,7 +23,7 @@ export async function bootstrapAdmin(input: unknown) {
     id = crypto.randomUUID();
   const encoded = await hashPassword(value.password);
   await atomic(async (c) => {
-    await c.query("SELECT pg_advisory_xact_lock(74002)");
+    await c.query("SELECT pg_advisory_xact_lock(74003)");
     if (
       (
         await c.query(
