@@ -1094,6 +1094,13 @@ describe("account lifecycle and ledger enforcement", () => {
     );
     const outcome = { amount: "1000", currency: "NGN", reference: p.reference };
     await settlePayment(p.id, { ...outcome, status: "successful" });
+    // This scenario tests claiming an eligible reward, not synchronization
+    // between the host clock used for available_at and PostgreSQL's clock.
+    // Make eligibility explicit in this disposable fixture before releasing.
+    await pool.query(
+      "UPDATE rewards SET available_at=now()-interval '1 second' WHERE transaction_id=$1 AND status='pending'",
+      [p.id],
+    );
     await atomic(releaseRewards);
     const r = (
       await pool.query("SELECT * FROM rewards WHERE transaction_id=$1", [p.id])

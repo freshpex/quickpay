@@ -1,5 +1,14 @@
 import type { ExpoConfig } from "expo/config";
 const production = process.env.APP_VARIANT === "production";
+if (production || process.env.APP_VARIANT === "preview") {
+  const api = new URL(process.env.EXPO_PUBLIC_API_URL || "");
+  if (api.protocol !== "https:" || api.username || api.password || api.search || api.hash || api.pathname.replace(/\/$/, "") !== "/api/v1") throw new Error("Preview/production builds require EXPO_PUBLIC_API_URL to be the public HTTPS API URL ending in /api/v1.");
+  const site = new URL(process.env.EXPO_PUBLIC_SITE_URL || "");
+  if (site.protocol !== "https:" || site.username || site.password)
+    throw new Error(
+      "Preview/production builds require EXPO_PUBLIC_SITE_URL to be the public HTTPS website origin.",
+    );
+}
 const host = process.env.APP_LINK_HOST?.trim();
 const iosId = process.env.APP_IOS_BUNDLE_ID || "com.quickpay.dev";
 const androidId = process.env.APP_ANDROID_PACKAGE || "com.quickpay.dev";
