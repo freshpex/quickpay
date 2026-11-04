@@ -21,7 +21,8 @@ import {
 } from "../../../components/feedback/Feedback";
 import { localDate } from "../../transactions/lib/status";
 export function ReferralsScreen() {
-  const cache = useQueryClient(); const {session} = useSession();
+  const cache = useQueryClient();
+  const { session } = useSession();
   const referrals = useResource<Referrals>("/referrals"),
     rule = useResource<{ summary: string }>("/rewards/active-rule");
   const [claim, setClaim] = useState<string | null>(null),
@@ -141,7 +142,9 @@ export function ReferralsScreen() {
             )
               .then(async (r) => {
                 setMessage(r.message);
-                  await cache.invalidateQueries({queryKey: [session?.user.id, "/wallet"]});
+                await cache.invalidateQueries({
+                  queryKey: [session?.user.id, "/wallet"],
+                });
                 setClaim(null);
                 await referrals.refetch();
               })

@@ -25,15 +25,30 @@ test("scroll scenes visibly stack and show the walking media", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await page.locator("#everyday article").nth(1).scrollIntoViewIfNeeded();
-  const bounds = await page.locator("#everyday article").evaluateAll((nodes) =>
-    nodes.map((node) => {
-      const r = node.getBoundingClientRect();
-      return { top: r.top, bottom: r.bottom };
+  await page.evaluate(() => document.fonts.ready);
+  const second = page.locator("#everyday article").nth(1);
+  // Centering an already-visible card need not enter the sticky overlap range.
+  // Scroll to the second card's real sticky threshold, then wait for hydration /
+  // IntersectionObserver / Motion to settle before measuring visible overlap.
+  await second.evaluate((node) =>
+    window.scrollTo({
+      top: window.scrollY + node.getBoundingClientRect().top - 118,
+      behavior: "instant",
     }),
   );
-  expect(bounds[0].bottom).toBeGreaterThan(bounds[1].top);
+  await expect
+    .poll(() =>
+      page
+        .locator("#everyday article")
+        .evaluateAll(
+          (nodes) =>
+            nodes[0].getBoundingClientRect().bottom -
+            nodes[1].getBoundingClientRect().top,
+        ),
+    )
+    .toBeGreaterThan(0);
   await page.screenshot({ path: "docs/screenshots/stacked-cards.png" });
   await page
     .getByRole("heading", { name: "Your day has places to be." })

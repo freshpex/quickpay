@@ -1,22 +1,24 @@
 # Deploy Quick Pay with a Render Blueprint
 
-The root `render.yaml` creates four resources in Frankfurt: a public Next.js web service, a Next.js API service, a durable background worker and PostgreSQL 17. The API also gets a persistent `/var/data` disk for encrypted gift-card evidence. These are paid plans; review Render's price estimate before applying the Blueprint. No resources have been created by this local preparation.
+The root `render.yaml` creates three services in Frankfurt: a public Next.js web service, a Next.js API service and a durable background worker. They share your existing Neon PostgreSQL database; no second Render database is created. The API gets a persistent `/var/data` disk for encrypted gift-card evidence. These are paid plans; review Render's price estimate before applying the Blueprint. No resources have been created by this local preparation.
 
 ## First deployment
 
 1. Put this repository in GitHub/GitLab/Bitbucket and push the source, lockfile, brand pack and `render.yaml`. Keep `.env`, `.env.local`, `.next*`, `.local` and credentials out of Git. All services use the repository root; do not set `rootDir` to an individual app because packages and assets are shared.
-2. In Render choose **New → Blueprint**, connect the repository, and select `render.yaml`. Review the three services, database and disk before creating them.
+2. In Render choose **New → Blueprint**, connect the repository, and select `render.yaml`. Review the three services and disk before creating them.
 3. Supply the API's requested environment values. The Blueprint shares the relevant values with the worker and the public origin with the web service; do not create different auth/encryption secrets for each service.
 
-| Setting | Value |
-|---|---|
-| `WEB_ORIGIN` | Exact public HTTPS frontend URL, without a trailing slash. Use your custom domain or the actual `quickpay-web` Render URL. If Render assigns a suffix, copy the URL shown on the web service, update this value on `quickpay-api`, then sync/redeploy the Blueprint before creating accounts. |
-| `DATA_ENCRYPTION_KEY` | One stable 64-character hexadecimal key. Generate once with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Keep it backed up privately; changing it makes previously encrypted evidence/references unreadable. |
-| `MAILJET_API_KEY`, `MAILJET_SECRET_KEY` | Matching Mailjet account credentials. |
-| `MAILJET_FROM_EMAIL` | A verified, active Mailjet sender email, without a display name. |
-| Optional Paystack/VTpass/Termii settings | Leave empty until configuring the corresponding provider. Initial payments and SMS are disabled. These deployment settings are independent of local `.env` values. |
+| Setting                                  | Value                                                                                                                                                                                                                                                                                         |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                           | Existing Neon pooled URL (hostname contains `-pooler`) for application traffic.                                                                                                                                                                                                               |
+| `DATABASE_URL_UNPOOLED`                  | Direct URL for the same Neon endpoint/database, without `-pooler`, for migrations and maintenance. The local `DATABASE_URL_UNPOOLING` spelling is supported as an alias.                                                                                                                      |
+| `WEB_ORIGIN`                             | Exact public HTTPS frontend URL, without a trailing slash. Use your custom domain or the actual `quickpay-web` Render URL. If Render assigns a suffix, copy the URL shown on the web service, update this value on `quickpay-api`, then sync/redeploy the Blueprint before creating accounts. |
+| `DATA_ENCRYPTION_KEY`                    | One stable 64-character hexadecimal key. Generate once with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Keep it backed up privately; changing it makes previously encrypted evidence/references unreadable.                                                   |
+| `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`  | Matching Mailjet account credentials.                                                                                                                                                                                                                                                         |
+| `MAILJET_FROM_EMAIL`                     | A verified, active Mailjet sender email, without a display name.                                                                                                                                                                                                                              |
+| Optional Paystack/VTpass/Termii settings | Leave empty until configuring the corresponding provider. Initial payments and SMS are disabled. These deployment settings are independent of local `.env` values.                                                                                                                            |
 
-`DATABASE_URL` is supplied from Render's private Postgres connection. `BETTER_AUTH_SECRET` is generated once by Render. The frontend's internal API address comes from `API_HOSTPORT`; no hardcoded `localhost` rewrite is used on Render. Node and pnpm versions are pinned. The worker receives the same DB and provider settings as the API through Blueprint references.
+`BETTER_AUTH_SECRET` is generated once by Render. The frontend's internal API address comes from `API_HOSTPORT`; no hardcoded `localhost` rewrite is used on Render. Node and pnpm versions are pinned. The worker receives the same pooled/direct database URLs and provider settings as the API through Blueprint references. Keep TLS enabled on both Neon URLs.
 
 4. Wait for API, web and worker to report a successful deploy. Migrations run in the API pre-deploy hook and again idempotently before API/worker startup, so a fresh worker cannot begin against a missing schema. Services refuse startup when required origin/email/storage settings are missing. The deployment does not seed fake gift-card rates, customers, balances or transactions.
 5. Verify all four endpoints through the public frontend:

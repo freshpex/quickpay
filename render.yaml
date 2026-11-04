@@ -10,7 +10,6 @@ services:
     preDeployCommand: pnpm db:migrate
     startCommand: pnpm deploy:start api
     healthCheckPath: /api/v1/health
-    maxShutdownDelaySeconds: 120
     disk:
       name: quickpay-evidence
       mountPath: /var/data
@@ -21,9 +20,9 @@ services:
       - key: NODE_VERSION
         value: 22.14.0
       - key: DATABASE_URL
-        fromDatabase:
-          name: quickpay-db
-          property: connectionString
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
       - key: WEB_ORIGIN
         sync: false
       - key: BETTER_AUTH_SECRET
@@ -106,9 +105,15 @@ services:
       - key: NODE_VERSION
         value: 22.14.0
       - key: DATABASE_URL
-        fromDatabase:
-          name: quickpay-db
-          property: connectionString
+        fromService:
+          name: quickpay-api
+          type: web
+          envVarKey: DATABASE_URL
+      - key: DATABASE_URL_UNPOOLED
+        fromService:
+          name: quickpay-api
+          type: web
+          envVarKey: DATABASE_URL_UNPOOLED
       - key: WEB_ORIGIN
         fromService:
           name: quickpay-api
@@ -191,13 +196,3 @@ services:
           name: quickpay-api
           type: web
           envVarKey: EXPO_ACCESS_TOKEN
-
-databases:
-  - name: quickpay-db
-    region: frankfurt
-    plan: 0.5c-1g
-    databaseName: quickpay
-    user: quickpay
-    postgresMajorVersion: "17"
-    diskSizeGB: 15
-    ipAllowList: []

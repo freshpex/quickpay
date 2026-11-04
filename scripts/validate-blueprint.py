@@ -23,6 +23,7 @@ assert services['quickpay-worker']['type'] == 'worker'
 assert services['quickpay-api']['disk']['mountPath'] == '/var/data'
 assert all('deploy:start' in service['startCommand'] for service in services.values())
 for service in services.values():
+    assert not (service.get('disk') and 'maxShutdownDelaySeconds' in service), f"{service['name']}: Render does not support maxShutdownDelaySeconds with a persistent disk"
     for variable in service['envVars']:
         reference = variable.get('fromService')
         if reference:

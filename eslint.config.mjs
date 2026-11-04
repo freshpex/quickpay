@@ -17,7 +17,10 @@ export default ts.config(
   },
   js.configs.recommended,
   ...ts.configs.recommended,
-  { files: ["apps/mobile/*.cjs"], rules: {"@typescript-eslint/no-require-imports": "off"} },
+  {
+    files: ["apps/mobile/*.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
   {
     languageOptions: {
       globals: {

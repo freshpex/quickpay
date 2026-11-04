@@ -3,7 +3,7 @@ import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { cssInterop } from "nativewind";
 import { InsideSheet } from "../bottom-sheet/context";
 import { TextInput, Text, View, type TextInputProps } from "react-native";
-const SheetTextInput = cssInterop(BottomSheetTextInput, {className: "style"});
+const SheetTextInput = cssInterop(BottomSheetTextInput, { className: "style" });
 export type InputProps = TextInputProps & {
   label: string;
   error?: string;
@@ -22,7 +22,10 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
         className={`min-h-14 flex-row items-center rounded-2xl border bg-white ${error ? "border-danger" : "border-line"}`}
       >
         <Control
-          ref={(instance: TextInput | null | undefined) => {if (typeof ref === "function") ref(instance || null); else if (ref) ref.current = instance || null;}}
+          ref={(instance: TextInput | null | undefined) => {
+            if (typeof ref === "function") ref(instance || null);
+            else if (ref) ref.current = instance || null;
+          }}
           accessibilityLabel={label}
           accessibilityHint={error}
           placeholderTextColor="#8D819A"

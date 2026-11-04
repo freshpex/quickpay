@@ -21,9 +21,7 @@ export interface GiftCardPurchaseProvider {
     reference: string;
     status: "processing" | "successful" | "failed";
   }>;
-  verify(
-    reference: string,
-  ): Promise<{
+  verify(reference: string): Promise<{
     reference: string;
     status: "processing" | "successful" | "failed" | "reversed";
     costKobo: string;

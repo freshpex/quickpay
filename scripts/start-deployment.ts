@@ -11,7 +11,7 @@ async function migrate() {
   const code = await new Promise<number | null>((resolve, reject) => {
     const task = spawn(
       process.execPath,
-      [require.resolve("tsx/cli"), "packages/database/src/migrate.ts"],
+      [require.resolve("tsx/cli"), "scripts/database-command.ts", "migrate"],
       { cwd: root, env: process.env, stdio: "inherit" },
     );
     task.on("error", reject);

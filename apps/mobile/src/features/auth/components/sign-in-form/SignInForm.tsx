@@ -17,7 +17,9 @@ export function SignInForm() {
     [code, setCode] = useState("");
   const submit = form.submit(async (v) => {
     if (mfa) {
-      const result = backup ? await authClient.twoFactor.verifyBackupCode({code}) : await authClient.twoFactor.verifyTotp({ code });
+      const result = backup
+        ? await authClient.twoFactor.verifyBackupCode({ code })
+        : await authClient.twoFactor.verifyTotp({ code });
       if (result.error)
         throw new Error(
           result.error.message || "Check your authenticator code.",
@@ -45,7 +47,9 @@ export function SignInForm() {
     setMfaBusy(true);
     form.clearErrors();
     try {
-      const result = backup ? await authClient.twoFactor.verifyBackupCode({code}) : await authClient.twoFactor.verifyTotp({ code });
+      const result = backup
+        ? await authClient.twoFactor.verifyBackupCode({ code })
+        : await authClient.twoFactor.verifyTotp({ code });
       if (result.error) throw new Error(result.error.message);
       setCode("");
       await refresh();
@@ -84,7 +88,9 @@ export function SignInForm() {
       ) : (
         <>
           <Notice>
-            {backup ? "Enter one of your unused backup codes." : "Enter the current six-digit code from your authenticator."}
+            {backup
+              ? "Enter one of your unused backup codes."
+              : "Enter the current six-digit code from your authenticator."}
           </Notice>
           <Input
             label={backup ? "Backup code" : "Authenticator code"}
@@ -94,7 +100,14 @@ export function SignInForm() {
             autoComplete={backup ? "off" : "one-time-code"}
             maxLength={backup ? 32 : 6}
           />
-          <Button title={backup ? "Use an authenticator code" : "Use a backup code"} secondary onPress={() => {setBackup(!backup); setCode("");}} />
+          <Button
+            title={backup ? "Use an authenticator code" : "Use a backup code"}
+            secondary
+            onPress={() => {
+              setBackup(!backup);
+              setCode("");
+            }}
+          />
         </>
       )}
       {form.formState.errors.root?.message && (

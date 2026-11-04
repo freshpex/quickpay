@@ -19,9 +19,8 @@ it("reports invalid server settings as 503 without leaking configuration fields 
   vi.stubEnv("PAYMENT_MODE", "enabled");
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
   const { env } = await import("../apps/api/src/shared/infrastructure/env");
-  const { endpoint } = await import(
-    "../apps/api/src/shared/infrastructure/http"
-  );
+  const { endpoint } =
+    await import("../apps/api/src/shared/infrastructure/http");
   const response = await endpoint(async () => {
     env();
     return new Response();
@@ -45,9 +44,8 @@ it("does not cache a provider configuration that failed validation", async () =>
   expect(env().PAYMENT_MODE).toBe("sandbox");
 });
 it("keeps form validation a 422 with specific field messages", async () => {
-  const { endpoint, body } = await import(
-    "../apps/api/src/shared/infrastructure/http"
-  );
+  const { endpoint, body } =
+    await import("../apps/api/src/shared/infrastructure/http");
   const { signUpSchema } = await import("@quickpay/contracts");
   const response = await endpoint(async (request) => {
     await body(request, signUpSchema);

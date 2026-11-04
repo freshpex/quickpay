@@ -13,6 +13,7 @@ Treat the following requirements as acceptance criteria.
 Quick Pay is a payment platform for people in Nigeria.
 
 Users should be able to:
+
 - Create an account and verify their contact details.
 - Deposit money into their wallet.
 - Withdraw money to a Nigerian bank account.
@@ -35,6 +36,7 @@ Use simple English that ordinary Nigerian customers can understand.
 2. REQUIRED TECHNOLOGY
 
 Use:
+
 - Next.js with TypeScript for the frontend.
 - Next.js with TypeScript and Route Handlers for the backend HTTP API.
 - Next.js App Router.
@@ -50,6 +52,7 @@ Check current official documentation before selecting dependency versions and fr
 Use a monorepo with clear application and package boundaries. Prefer pnpm workspaces unless the existing repository has another established package manager.
 
 Suggested applications:
+
 - apps/web: marketing website, authentication, customer dashboard, admin interface.
 - apps/api: Next.js backend exposing /api/v1.
 - apps/worker: background processing when a separate worker process is required.
@@ -57,6 +60,7 @@ Suggested applications:
 The worker supports the Next.js backend. Do not replace the requested API with an unrelated backend framework.
 
 Shared packages may include:
+
 - API contracts and validation schemas.
 - A generated or typed API client.
 - Database access and migrations.
@@ -70,6 +74,7 @@ Keep database access, provider secrets, and server-only code out of browser-safe
 Use a modular monolith with clear domain boundaries and a versioned API that a future mobile app can consume.
 
 Use TOGAF-inspired architectural thinking:
+
 - Business capabilities and workflows.
 - Application boundaries and responsibilities.
 - Data ownership and lifecycle.
@@ -84,6 +89,7 @@ The future mobile application must be able to use the same backend without depen
 All core business operations must be accessible through the versioned API. Design authentication so secure browser sessions and a future mobile token flow can be supported through the same identity system.
 
 Use these backend modules where applicable:
+
 - auth
 - users
 - verification
@@ -115,172 +121,172 @@ Shared infrastructure belongs in a shared infrastructure area. Feature-specific 
 Follow this pattern, adapting names to the actual application:
 
 apps/
-  web/
-    src/
-      app/
-        (marketing)/
-        (auth)/
-        (customer)/
-        admin/
-      features/
-        landing/
-          components/
-            hero/
-              Hero.tsx
-              index.ts
-            service-marquee/
-              ServiceMarquee.tsx
-              index.ts
-            stacked-cards/
-              StackedCards.tsx
-              index.ts
-            walking-story/
-              WalkingStory.tsx
-              index.ts
-          animations/
-          hooks/
-          LandingPage.tsx
-          index.ts
-        auth/
-          components/
-            sign-up-form/
-              SignUpForm.tsx
-              index.ts
-            sign-in-form/
-              SignInForm.tsx
-              index.ts
-          schemas/
-          hooks/
-          api/
-          types/
-          index.ts
-        wallet/
-          components/
-            balance-card/
-              BalanceCard.tsx
-              index.ts
-          tabs/
-            transactions-tab/
-              TransactionsTab.tsx
-              index.ts
-          modals/
-            deposit-modal/
-              DepositModal.tsx
-              index.ts
-            withdrawal-modal/
-              WithdrawalModal.tsx
-              index.ts
-          hooks/
-          schemas/
-          api/
-          types/
-          WalletPage.tsx
-          index.ts
-        bills/
-        gift-cards/
-        referrals/
-        settings/
-        support/
-        admin/
-          features/
-            reward-rules/
-            users/
-            transactions/
-            service-catalog/
-            gift-card-review/
-      components/
-        ui/
-          button/
-          input/
-          password-input/
-          checkbox/
-          dialog/
-        layout/
-          header/
-          footer/
-          sidebar/
-          mobile-navigation/
-        feedback/
-          toast/
-          empty-state/
-          loading-state/
-          error-state/
-        navigation/
-          protected-route/
-          breadcrumbs/
-      lib/
-      providers/
+web/
+src/
+app/
+(marketing)/
+(auth)/
+(customer)/
+admin/
+features/
+landing/
+components/
+hero/
+Hero.tsx
+index.ts
+service-marquee/
+ServiceMarquee.tsx
+index.ts
+stacked-cards/
+StackedCards.tsx
+index.ts
+walking-story/
+WalkingStory.tsx
+index.ts
+animations/
+hooks/
+LandingPage.tsx
+index.ts
+auth/
+components/
+sign-up-form/
+SignUpForm.tsx
+index.ts
+sign-in-form/
+SignInForm.tsx
+index.ts
+schemas/
+hooks/
+api/
+types/
+index.ts
+wallet/
+components/
+balance-card/
+BalanceCard.tsx
+index.ts
+tabs/
+transactions-tab/
+TransactionsTab.tsx
+index.ts
+modals/
+deposit-modal/
+DepositModal.tsx
+index.ts
+withdrawal-modal/
+WithdrawalModal.tsx
+index.ts
+hooks/
+schemas/
+api/
+types/
+WalletPage.tsx
+index.ts
+bills/
+gift-cards/
+referrals/
+settings/
+support/
+admin/
+features/
+reward-rules/
+users/
+transactions/
+service-catalog/
+gift-card-review/
+components/
+ui/
+button/
+input/
+password-input/
+checkbox/
+dialog/
+layout/
+header/
+footer/
+sidebar/
+mobile-navigation/
+feedback/
+toast/
+empty-state/
+loading-state/
+error-state/
+navigation/
+protected-route/
+breadcrumbs/
+lib/
+providers/
 
-  api/
-    src/
-      app/
-        api/
-          v1/
-            payments/
-              route.ts
-            payments/
-              [paymentId]/
-                route.ts
-      v1/
-        modules/
-          payments/
-            routes/
-              create-payment/
-                handler.ts
-                index.ts
-              get-payment/
-                handler.ts
-                index.ts
-            docs/
-              payments.openapi.ts
-              index.ts
-            schemas/
-              create-payment.schema.ts
-              index.ts
-            services/
-              create-payment/
-                create-payment.service.ts
-                index.ts
-            domain/
-              payment-state/
-                payment-state.ts
-                index.ts
-            repositories/
-              payment.repository.ts
-              index.ts
-            middleware/
-              payment-permissions/
-                payment-permissions.ts
-                index.ts
-            providers/
-            jobs/
-            tests/
-            index.ts
-          wallets/
-          referrals/
-          rewards/
-          gift-cards/
-          admin/
-      shared/
-        auth/
-        errors/
-        logging/
-        idempotency/
-        infrastructure/
-        observability/
+api/
+src/
+app/
+api/
+v1/
+payments/
+route.ts
+payments/
+[paymentId]/
+route.ts
+v1/
+modules/
+payments/
+routes/
+create-payment/
+handler.ts
+index.ts
+get-payment/
+handler.ts
+index.ts
+docs/
+payments.openapi.ts
+index.ts
+schemas/
+create-payment.schema.ts
+index.ts
+services/
+create-payment/
+create-payment.service.ts
+index.ts
+domain/
+payment-state/
+payment-state.ts
+index.ts
+repositories/
+payment.repository.ts
+index.ts
+middleware/
+payment-permissions/
+payment-permissions.ts
+index.ts
+providers/
+jobs/
+tests/
+index.ts
+wallets/
+referrals/
+rewards/
+gift-cards/
+admin/
+shared/
+auth/
+errors/
+logging/
+idempotency/
+infrastructure/
+observability/
 
 packages/
-  contracts/
-  api-client/
-  database/
-  ui/
-  config/
+contracts/
+api-client/
+database/
+ui/
+config/
 
 docs/
-  architecture/
-  decisions/
-  integrations/
-  operations/
+architecture/
+decisions/
+integrations/
+operations/
 
 Next.js requires route.ts files inside its routing directory. Keep those files thin and delegate to the appropriate module handlers.
 
@@ -303,6 +309,7 @@ Do not simplify it into a restrained, static fintech template. Do not reduce the
 For visitors using normal motion settings, intentionally favor abundant animation, layered scenes, bold typography, expressive transitions, and rich visual storytelling.
 
 Choose a distinctive brand direction and implement it consistently:
+
 - Strong typography.
 - Confident colors.
 - Large visual compositions.
@@ -318,6 +325,7 @@ Avoid making the whole website a repeated grid of rounded cards.
 Required landing-page experiences:
 
 A. Animated hero
+
 - Large, readable headline.
 - Clear primary and secondary actions.
 - Layered wallet, bill, receipt, or gift-card previews.
@@ -326,47 +334,56 @@ A. Animated hero
 - Real human photography or footage integrated into the composition.
 
 B. Moving service and brand strip
+
 - Actual logos for supported services.
 - Continuous movement with pause controls where needed.
 - Correct proportions and clear labels.
 
 C. Scroll-stacked cards
+
 - At least three substantial cards that visibly stack over one another as the visitor scrolls.
 - Each card explains a real product capability.
 - Use deliberate depth, scaling, and transitions.
 
 D. Pinned product story
+
 - A section that remains in place while scrolling advances through several product states.
 - Synchronize the headline, product preview, and supporting copy.
 - Keep all content readable without animation.
 
 E. Walking-person sequence
+
 - Use properly licensed footage, a transparent person cutout, or a suitable image sequence.
 - Make the person travel through the scene as scrolling advances.
 - Coordinate the person’s movement with the surrounding content.
 - Do not substitute a generic walking-person icon.
 
 F. Changing call to action
+
 - Change the CTA presentation or supporting text as visitors move through the product story.
 - Keep the destination and current action understandable.
 - Preserve keyboard focus and stable accessible names.
 
 G. Gift-card showcase
+
 - Animated card fans, overlapping cards, flips, or a horizontal reveal.
 - Use genuine supported gift-card brand assets.
 
 H. Referral story
+
 - Show the sequence from invitation to qualifying bill payment to earned reward.
 - Use animated connections, receipts, progress, or wallet movement.
 - Any displayed reward must reflect an active rule or be clearly identified as an illustration.
 
 I. Human video or animated media
+
 - Include relevant short video loops, GIFs, or image sequences.
 - Prefer efficient video formats for large animated content.
 - Use muted inline playback where appropriate.
 - Include poster images and fallbacks.
 
 J. Additional motion throughout
+
 - Section reveals.
 - Hover and press feedback.
 - Animated navigation.
@@ -402,6 +419,7 @@ The marketing site can be theatrical. Payment screens must still let users compl
 Search online for suitable real media.
 
 Use:
+
 - Real photography relevant to Nigerian users.
 - Real people and everyday settings.
 - Authentic supported service logos.
@@ -409,6 +427,7 @@ Use:
 - Properly licensed video, GIFs, or image sequences.
 
 Do not use:
+
 - AI-generated people or lifestyle photography.
 - Invented provider logos.
 - Broken image URLs.
@@ -432,6 +451,7 @@ Do not use Sparkles icons anywhere.
 Do not decorate unrelated features with random stars, magic wands, rockets, or AI-themed icons.
 
 Use a consistent modern icon set and choose icons that match the actual action:
+
 - Phone for airtime.
 - Appropriate utility symbols for bills.
 - Wallet for wallet actions.
@@ -443,6 +463,7 @@ Use real brand logos for service selection when available.
 Customer copy must be short, natural, and clear.
 
 Good examples:
+
 - “Pay your bills in a few taps.”
 - “Add money.”
 - “Withdraw to your bank.”
@@ -451,6 +472,7 @@ Good examples:
 - “Invite friends. Earn rewards.”
 
 Avoid:
+
 - “Unlock seamless financial empowerment.”
 - “Revolutionize your financial journey.”
 - “Experience the future of limitless possibilities.”
@@ -463,6 +485,7 @@ Do not expose provider errors, stack traces, or internal infrastructure details 
 9. AUTHENTICATION AND ACCOUNT SECURITY
 
 Implement:
+
 - Sign up.
 - Sign in.
 - Contact verification.
@@ -474,6 +497,7 @@ Implement:
 - Appropriate transaction authorization.
 
 The signup form must include:
+
 - Full name.
 - Email.
 - Nigerian phone number.
@@ -489,6 +513,7 @@ Every password field must have an accessible eye/show-hide button, including con
 Create one reusable PasswordInput component and use it consistently.
 
 Requirements:
+
 - Correct autocomplete attributes.
 - Password-manager support.
 - Clear password requirements.
@@ -508,6 +533,7 @@ Use roles and explicit permissions. A logged-in customer must never gain admin p
 10. CUSTOMER APPLICATION
 
 Build complete responsive screens for:
+
 - Dashboard.
 - Wallet.
 - Deposit.
@@ -527,6 +553,7 @@ Build complete responsive screens for:
 - Support requests.
 
 Bill-payment flow:
+
 1. Choose a category and provider.
 2. Enter the required account, phone, meter, or smartcard details.
 3. Validate the beneficiary when the provider supports it.
@@ -539,6 +566,7 @@ Bill-payment flow:
 Display electricity tokens and similar fulfillment details securely and clearly.
 
 Gift-card selling must include:
+
 - Supported brand and region.
 - Card type.
 - Amount.
@@ -554,6 +582,7 @@ Never automatically credit a gift-card sale merely because a user uploaded an im
 11. ADMIN APPLICATION AND CONFIGURABLE REWARDS
 
 Build a protected admin interface with permission-controlled access to:
+
 - Users and verification.
 - Transactions.
 - Deposits and withdrawals.
@@ -570,6 +599,7 @@ Build a protected admin interface with permission-controlled access to:
 Referral logic must be editable by authorized admins without a code deployment.
 
 Support configuration for:
+
 - Percentage reward.
 - Fixed naira reward.
 - Which party receives the reward.
@@ -588,6 +618,7 @@ Support configuration for:
 Use a structured, validated rules model. Never execute arbitrary admin-written JavaScript or eval expressions.
 
 Provide:
+
 - Human-readable rule summaries.
 - A preview calculator using sample transaction amounts.
 - Clear validation of conflicting or incomplete settings.
@@ -599,6 +630,7 @@ Persist the applicable reward-rule version with each reward. New settings must n
 Award rewards only for verified qualifying transactions.
 
 Handle:
+
 - Duplicate events.
 - Self-referrals.
 - Repeated claims.
@@ -628,6 +660,7 @@ Treat financial correctness as a core requirement.
 - Never credit money based only on a browser redirect or frontend success message.
 
 Model transaction states explicitly:
+
 - Created.
 - Awaiting authorization.
 - Processing.
@@ -639,6 +672,7 @@ Model transaction states explicitly:
 A timeout does not automatically mean failure. Keep uncertain transactions pending until reconciled.
 
 For withdrawals:
+
 - Validate the destination.
 - Reserve the funds atomically.
 - Initiate the transfer safely.
@@ -657,6 +691,7 @@ Administrators must not edit wallet balance fields directly. Any authorized adju
 Research current official provider documentation before implementing integrations.
 
 Evaluate appropriate providers for:
+
 - Collections and deposits.
 - Nigerian bank withdrawals.
 - Bill payments.
@@ -672,6 +707,7 @@ Build replaceable provider adapters with typed contracts. Keep provider-specific
 Load service availability and plan catalogs from supported provider APIs where practical.
 
 Do not invent:
+
 - API endpoints.
 - Provider credentials.
 - Gift-card resale capabilities.
@@ -679,6 +715,7 @@ Do not invent:
 - Successful financial transactions.
 
 If credentials or commercial access are missing:
+
 - Complete the adapter structure and configuration.
 - Provide explicitly isolated sandbox/local development behavior.
 - Keep simulated outcomes out of live mode.
@@ -691,6 +728,7 @@ Never silently fall back from live payments to mock success.
 14. TAILWIND AND REUSABLE COMPONENTS
 
 Use Tailwind utilities for:
+
 - Layout.
 - Spacing.
 - Typography.
@@ -709,6 +747,7 @@ A small global stylesheet may contain required Tailwind imports, theme tokens, a
 Use animation libraries for complex motion rather than scattering imperative animation code throughout components.
 
 Build reusable components for:
+
 - Password inputs.
 - Form fields.
 - Buttons.
@@ -729,6 +768,7 @@ Avoid giant files containing an entire application, all dialogs, all forms, and 
 15. RESPONSIVE BEHAVIOR AND FEEDBACK
 
 Design for mobile first and verify at approximately:
+
 - 360px.
 - 390px.
 - 768px.
@@ -736,6 +776,7 @@ Design for mobile first and verify at approximately:
 - 1440px.
 
 Requirements:
+
 - No accidental horizontal overflow.
 - Comfortable touch targets.
 - Useful mobile navigation.
@@ -753,6 +794,7 @@ Payment status changes must be announced accessibly.
 16. SECURITY AND OPERATIONS
 
 Implement relevant controls for:
+
 - Input validation.
 - Resource ownership.
 - Admin permissions.
@@ -779,6 +821,7 @@ Document provider onboarding, verification, operating permissions, privacy, and 
 17. TESTING AND PROOF
 
 Run checks appropriate to the implementation:
+
 - Lint.
 - Type checking.
 - Production builds.
@@ -788,6 +831,7 @@ Run checks appropriate to the implementation:
 - Browser end-to-end tests.
 
 Financial tests must cover:
+
 - Duplicate deposits.
 - Duplicate webhooks.
 - Invalid webhook authentication.
@@ -803,6 +847,7 @@ Financial tests must cover:
 - Cross-user resource access.
 
 Browser checks must cover:
+
 - Signup and password controls.
 - Confirm-password validation.
 - Terms acceptance.
@@ -818,6 +863,7 @@ Browser checks must cover:
 Actually inspect the rendered application. Do not claim visual quality from code inspection alone.
 
 Record which checks passed and distinguish:
+
 - Local simulated behavior.
 - Provider sandbox verification.
 - Live provider verification.
@@ -829,6 +875,7 @@ Do not describe the product as production-ready when critical integrations or op
 18. DELIVERY WORKFLOW
 
 Start by:
+
 1. Inspecting the workspace and repository instructions.
 2. Writing a concise implementation plan.
 3. Defining the architecture and domain model.
@@ -842,6 +889,7 @@ Do not spend the entire task producing architecture documents while leaving the 
 Maintain a persistent checklist so requirements are not lost during a long implementation.
 
 Do not stop at:
+
 - A static landing page.
 - A dashboard with fake balances.
 - Decorative forms with no backend behavior.
@@ -850,6 +898,7 @@ Do not stop at:
 - A folder tree with empty implementation files.
 
 Deliver:
+
 - Working source code.
 - Database migrations.
 - Safe development seed data.
@@ -865,16 +914,15 @@ Deliver:
 Persist the important project rules in an appropriate repository instruction file so future work follows the same structure, visual direction, and security requirements.
 
 For the Frontend
-Role	Colour	Hex
-Main brand, primary buttons	Violet	#6D28D9
-Dark sections, footer	Deep purple	#2E1065
-Main background	Warm white	#FAF9FF
-Promotional accents, referral highlights	Lime	#D9F86C
-Main text	Dark ink	#191425
+Role Colour Hex
+Main brand, primary buttons Violet #6D28D9
+Dark sections, footer Deep purple #2E1065
+Main background Warm white #FAF9FF
+Promotional accents, referral highlights Lime #D9F86C
+Main text Dark ink #191425
 Use white text on violet buttons and dark text on lime backgrounds. Keep green for successful payments, amber for pending payments, and red for errors.
 For the landing page, alternate warm-white sections with bold violet and deep-purple scenes. Let photography, moving cards, and occasional lime accents bring the energy.
 violet as the identity, lime as the accent. Avoid covering everything in pale lavender or making every section a purple gradient.
-
 
 FINAL ACCEPTANCE RULE
 

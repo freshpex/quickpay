@@ -36,14 +36,14 @@ The phone field is normalized and stored. Termii SMS verification is implemented
 
 ## Applications and packages
 
-| Boundary | Responsibility |
-|---|---|
-| `apps/web` | Marketing, auth, customer and admin App Router pages; Tailwind; Motion |
-| `apps/api` | Next.js Route Handlers under `/api/v1`; feature modules and server infrastructure |
-| `apps/worker` | PostgreSQL durable job leases, provider processing, email and reconciliation |
-| `packages/contracts` | Browser-safe Zod contracts, exact-money helpers and reward rules |
-| `packages/api-client` | Typed fetch transport and safe API errors |
-| `packages/database` | Server-only Drizzle schema, PostgreSQL pool and ordered SQL migrations |
+| Boundary              | Responsibility                                                                    |
+| --------------------- | --------------------------------------------------------------------------------- |
+| `apps/web`            | Marketing, auth, customer and admin App Router pages; Tailwind; Motion            |
+| `apps/api`            | Next.js Route Handlers under `/api/v1`; feature modules and server infrastructure |
+| `apps/worker`         | PostgreSQL durable job leases, provider processing, email and reconciliation      |
+| `packages/contracts`  | Browser-safe Zod contracts, exact-money helpers and reward rules                  |
+| `packages/api-client` | Typed fetch transport and safe API errors                                         |
+| `packages/database`   | Server-only Drizzle schema, PostgreSQL pool and ordered SQL migrations            |
 
 ## Administration
 

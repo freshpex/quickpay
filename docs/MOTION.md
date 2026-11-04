@@ -17,7 +17,6 @@ Normal-motion design uses distinct treatments, rather than repeated opacity fade
 13. Referral node movement and button hover/press feedback.
 14. Animated mobile marketing menu and customer drawer transition.
 
-
 Marketing can be theatrical; payment controls remain stable, labelled and immediately usable. Request status uses live status semantics. All password fields share the accessible PasswordInput, including confirmation, transaction authorization and reset.
 
 Browser screenshots are in `docs/screenshots`. The test harness checks approximately 360, 390, 768, 1024 and 1440px. A still screenshot proves composition, not continuous animation; the browser motion tests separately exercise state changes, reduced-motion behavior and media-failure usability.

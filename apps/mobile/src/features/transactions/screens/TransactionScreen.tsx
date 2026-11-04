@@ -49,7 +49,17 @@ export function TransactionScreen() {
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   const t = query.data?.transaction;
-  useEffect(() => {if (!t) return; for (const key of ["/wallet", "/payments", "history", "/referrals", "/notifications"]) void cache.invalidateQueries({queryKey: [t.userId, key]});}, [cache, t?.id, t?.status]);
+  useEffect(() => {
+    if (!t) return;
+    for (const key of [
+      "/wallet",
+      "/payments",
+      "history",
+      "/referrals",
+      "/notifications",
+    ])
+      void cache.invalidateQueries({ queryKey: [t.userId, key] });
+  }, [cache, t?.id, t?.status]);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active" && valid) void query.refetch();

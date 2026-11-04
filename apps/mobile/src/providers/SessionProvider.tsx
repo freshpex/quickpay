@@ -61,8 +61,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       if (currentUser.current && currentUser.current !== next.user.id) {
-        await cache.cancelQueries(); cache.clear();
-        await Promise.all([secure.remove("pending"), secure.remove("gift_draft")]);
+        await cache.cancelQueries();
+        cache.clear();
+        await Promise.all([
+          secure.remove("pending"),
+          secure.remove("gift_draft"),
+        ]);
       }
       currentUser.current = next.user.id;
       setSession(next);

@@ -1,8 +1,8 @@
 import type { ExpoConfig } from "expo/config";
 const production = process.env.APP_VARIANT === "production";
 const host = process.env.APP_LINK_HOST?.trim();
-const iosId = process.env.APP_IOS_BUNDLE_ID || "com.example.quickpay.dev";
-const androidId = process.env.APP_ANDROID_PACKAGE || "com.example.quickpay.dev";
+const iosId = process.env.APP_IOS_BUNDLE_ID || "com.quickpay.dev";
+const androidId = process.env.APP_ANDROID_PACKAGE || "com.quickpay.dev";
 if (
   production &&
   (iosId.startsWith("com.example.") || androidId.startsWith("com.example."))

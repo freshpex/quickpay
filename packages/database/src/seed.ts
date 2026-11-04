@@ -1,7 +1,9 @@
 import { pool } from "./index";
+const catalogOnly = process.argv.includes("--catalog-only");
 if (
-  process.env.NODE_ENV === "production" ||
-  process.env.SEED_DEVELOPMENT !== "true"
+  !catalogOnly &&
+  (process.env.NODE_ENV === "production" ||
+    process.env.SEED_DEVELOPMENT !== "true")
 )
   throw new Error("Seed requires SEED_DEVELOPMENT=true outside production.");
 const services = [
@@ -24,16 +26,19 @@ for (const [id, name, category, logo, validation] of services)
     [id, name, category, logo, validation],
   );
 // Deliberately disabled, illustrative inventory pending commercial onboarding.
-for (const [id, brand] of [
-  ["apple-us", "Apple"],
-  ["amazon-us", "Amazon"],
-  ["steam-us", "Steam"],
-])
-  await pool.query(
-    "INSERT INTO gift_products(id,brand,region,card_type,rate_kobo,min_units,max_units) VALUES($1,$2,'US','digital',100,10,500) ON CONFLICT DO NOTHING",
-    [id, brand],
-  );
+if (!catalogOnly)
+  for (const [id, brand] of [
+    ["apple-us", "Apple"],
+    ["amazon-us", "Amazon"],
+    ["steam-us", "Steam"],
+  ])
+    await pool.query(
+      "INSERT INTO gift_products(id,brand,region,card_type,rate_kobo,min_units,max_units) VALUES($1,$2,'US','digital',100,10,500) ON CONFLICT DO NOTHING",
+      [id, brand],
+    );
 console.log(
-  "Seeded disabled service inventory. No users, balances, transactions or active reward claims created.",
+  catalogOnly
+    ? "Seeded disabled bill-service catalog only. No gift rates, users, balances, transactions or reward rules created."
+    : "Seeded disabled service inventory. No users, balances, transactions or active reward claims created.",
 );
 await pool.end();

@@ -2,21 +2,21 @@
 
 Verified locally on 4 November 2026. This is development and local production-build evidence, not production deployment or provider approval.
 
-| Check | Result |
-|---|---|
-| Dependency install and frozen lockfile | Passed; pinned dependencies with pnpm 11.19.0 |
-| TypeScript | `pnpm typecheck` passed |
-| Lint | `pnpm lint` passed |
-| Production dependency audit | `pnpm audit --prod --audit-level high`: no known vulnerabilities found |
-| PostgreSQL migrations | All eight ordered migrations applied to local PostgreSQL 17 |
-| Safe seed | Disabled service inventory only; application DB has zero users and zero financial transactions |
-| Database/API/domain tests | Latest Mailjet follow-up: **38 passed** (28 database/API/domain + 10 mocked email tests). Separate disposable `quickpay_test` database. Prior reward-release failure is recorded below. |
-| Production builds | `pnpm build`: Next.js API and web builds passed |
-| Browser tests | Latest `E2E_USE_PRODUCTION=true pnpm test:e2e`: **13 passed**, installed Microsoft Edge, headless, against local production builds |
-| Worker delivery | Historical SMTP smoke: durable job completed and Mailpit received it. Superseded by Mailjet; actual Mailjet delivery awaits credentials and sender configuration. |
-| Mailjet adapter | **10 mocked tests passed**: Send API request/authentication, missing configuration, invalid recipient, HTTP/per-message rejection, empty/malformed response structure, and network failure propagation. No live email sent. |
-| Runtime API smoke | `/api/v1/health` returned ok with payment mode disabled; `/api/v1/openapi` returned OpenAPI 3.1.0 |
-| Preview tool | In-app and connected-browser tooling returned runtime errors; rendered verification used automated browser tests and captured screenshots |
+| Check                                  | Result                                                                                                                                                                                                                      |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dependency install and frozen lockfile | Passed; pinned dependencies with pnpm 11.19.0                                                                                                                                                                               |
+| TypeScript                             | `pnpm typecheck` passed                                                                                                                                                                                                     |
+| Lint                                   | `pnpm lint` passed                                                                                                                                                                                                          |
+| Production dependency audit            | `pnpm audit --prod --audit-level high`: no known vulnerabilities found                                                                                                                                                      |
+| PostgreSQL migrations                  | All eight ordered migrations applied to local PostgreSQL 17                                                                                                                                                                 |
+| Safe seed                              | Disabled service inventory only; application DB has zero users and zero financial transactions                                                                                                                              |
+| Database/API/domain tests              | Latest Mailjet follow-up: **38 passed** (28 database/API/domain + 10 mocked email tests). Separate disposable `quickpay_test` database. Prior reward-release failure is recorded below.                                     |
+| Production builds                      | `pnpm build`: Next.js API and web builds passed                                                                                                                                                                             |
+| Browser tests                          | Latest `E2E_USE_PRODUCTION=true pnpm test:e2e`: **13 passed**, installed Microsoft Edge, headless, against local production builds                                                                                          |
+| Worker delivery                        | Historical SMTP smoke: durable job completed and Mailpit received it. Superseded by Mailjet; actual Mailjet delivery awaits credentials and sender configuration.                                                           |
+| Mailjet adapter                        | **10 mocked tests passed**: Send API request/authentication, missing configuration, invalid recipient, HTTP/per-message rejection, empty/malformed response structure, and network failure propagation. No live email sent. |
+| Runtime API smoke                      | `/api/v1/health` returned ok with payment mode disabled; `/api/v1/openapi` returned OpenAPI 3.1.0                                                                                                                           |
+| Preview tool                           | In-app and connected-browser tooling returned runtime errors; rendered verification used automated browser tests and captured screenshots                                                                                   |
 
 ## Database and API coverage
 

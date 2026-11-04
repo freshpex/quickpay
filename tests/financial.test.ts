@@ -49,6 +49,7 @@ import {
   checkPushReceipt,
 } from "../apps/api/src/v1/modules/notifications/jobs/deliver-push";
 import { upload as uploadEvidence } from "../apps/api/src/v1/modules/gift-cards/routes/handler";
+import { bootstrapAdmin } from "../apps/api/src/v1/modules/admin/services/bootstrap";
 import { unlockAdmin } from "../apps/api/src/v1/modules/admin/routes/access";
 import { rewardRules } from "../apps/api/src/v1/modules/admin/routes/reward-rules";
 import {
@@ -140,7 +141,36 @@ beforeAll(async () => {
 afterAll(() => pool.end());
 
 describe("native client extensions", () => {
+  it("provisions only the first operator with hashed credentials and no verification or MFA bypass", async () => {
+    const initial = {
+      email: `bootstrap-${crypto.randomUUID()}@quickpay.test`,
+      phoneNumber: "07047160299",
+      password: "Initial123!",
+    };
+    const result = await bootstrapAdmin(initial);
+    const row = (
+      await pool.query(
+        "SELECT u.role,u.email_verified,u.phone_verified,u.two_factor_enabled,u.permissions,a.password FROM users u JOIN auth_accounts a ON a.user_id=u.id WHERE u.id=$1",
+        [result.id],
+      )
+    ).rows[0];
+    expect(row.role).toBe("admin");
+    expect(row.email_verified).toBe(false);
+    expect(row.phone_verified).toBe(false);
+    expect(row.two_factor_enabled).toBe(false);
+    expect(row.permissions).toContain("operations.write");
+    expect(row.password).not.toBe(initial.password);
+    await expect(
+      bootstrapAdmin({
+        ...initial,
+        email: "another-bootstrap@quickpay.test",
+        phoneNumber: "07047160298",
+      }),
+    ).rejects.toThrow("no existing admin");
+  });
+  const nativeLogins = new Map<string, string>();
   async function login(id = ids.user) {
+    if (nativeLogins.has(id)) return nativeLogins.get(id)!;
     const response = await handleAuth(
       new Request("http://localhost:3001/api/v1/auth/sign-in/email", {
         method: "POST",
@@ -157,6 +187,7 @@ describe("native client extensions", () => {
     expect(response.status).toBe(200);
     const token = response.headers.get("set-auth-token");
     expect(token).toBeTruthy();
+    nativeLogins.set(id, token!);
     return token!;
   }
   function request(token: string, payload?: unknown, method = "GET") {
@@ -184,6 +215,7 @@ describe("native client extensions", () => {
       methods: [],
     });
     await auth().api.signOut({ headers: request(token).headers });
+    nativeLogins.delete(ids.user);
     await expect(walletCapabilities(request(token))).rejects.toThrow("sign in");
   });
   it("recovers only the owner’s exact idempotency reference", async () => {
@@ -225,7 +257,8 @@ describe("native client extensions", () => {
   });
   it("binds push devices to the authenticated account and restricts revocation", async () => {
     const config = env();
-    config.PUSH_ENABLED = "true"; config.EXPO_ACCESS_TOKEN = "local-provider-test";
+    config.PUSH_ENABLED = "true";
+    config.EXPO_ACCESS_TOKEN = "local-provider-test";
     try {
       const owner = await login(),
         other = await login(ids.other),
@@ -271,12 +304,14 @@ describe("native client extensions", () => {
       ).toBe(ids.other);
       await devices(request(other, { installationId }, "DELETE"));
     } finally {
-      config.PUSH_ENABLED = "false"; config.EXPO_ACCESS_TOKEN = undefined;
+      config.PUSH_ENABLED = "false";
+      config.EXPO_ACCESS_TOKEN = undefined;
     }
   });
   it("queues generic push payloads, checks receipts and removes unregistered tokens", async () => {
     const config = env();
-    config.PUSH_ENABLED = "true"; config.EXPO_ACCESS_TOKEN = "local-provider-test";
+    config.PUSH_ENABLED = "true";
+    config.EXPO_ACCESS_TOKEN = "local-provider-test";
     config.EXPO_ACCESS_TOKEN = "local-provider-test";
     const fetcher = vi.spyOn(globalThis, "fetch");
     try {
@@ -343,7 +378,8 @@ describe("native client extensions", () => {
         ).rowCount,
       ).toBe(0);
     } finally {
-      config.PUSH_ENABLED = "false"; config.EXPO_ACCESS_TOKEN = undefined;
+      config.PUSH_ENABLED = "false";
+      config.EXPO_ACCESS_TOKEN = undefined;
       config.EXPO_ACCESS_TOKEN = undefined;
       fetcher.mockRestore();
     }

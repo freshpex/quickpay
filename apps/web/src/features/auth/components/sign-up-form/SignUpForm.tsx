@@ -71,7 +71,8 @@ export function SignUpForm() {
         <h2 className="text-xl font-bold">Check your email.</h2>
         <p className="my-4 text-sm leading-relaxed text-ink/60">
           Open the verification link we sent you. Then sign in to start using
-          your account. If you can't find the email, check your spam tab or contact support after 5 minutes of not rceiveing an email
+          your account. If you can't find the email, check your spam tab or
+          contact support after 5 minutes of not rceiveing an email
         </p>
         <Link href="/sign-in" className="font-bold text-brand">
           Continue to sign in

@@ -5,11 +5,7 @@ export function BrandHeader({ white = false }: { white?: boolean }) {
   return (
     <Image
       accessibilityLabel="Quick Pay"
-      source={
-        white
-          ? headerDark
-          : headerLight
-      }
+      source={white ? headerDark : headerLight}
       resizeMode="contain"
       className="h-9 w-36"
     />

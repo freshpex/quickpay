@@ -34,7 +34,7 @@ export function Sheet({
   return (
     <BottomSheetModal
       ref={ref}
-      maxDynamicContentSize={height * .88}
+      maxDynamicContentSize={height * 0.88}
       enablePanDownToClose={dismissible}
       onDismiss={onClose}
       keyboardBehavior="interactive"
@@ -49,7 +49,9 @@ export function Sheet({
       )}
     >
       <BottomSheetScrollView keyboardShouldPersistTaps="handled">
-        <InsideSheet.Provider value={true}><View className="gap-4 px-5 pb-12 pt-3">{children}</View></InsideSheet.Provider>
+        <InsideSheet.Provider value={true}>
+          <View className="gap-4 px-5 pb-12 pt-3">{children}</View>
+        </InsideSheet.Provider>
       </BottomSheetScrollView>
     </BottomSheetModal>
   );
