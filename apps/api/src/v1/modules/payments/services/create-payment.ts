@@ -24,6 +24,7 @@ import {
 import { paystackConfigured } from "../../deposits/providers/paystack";
 import { env } from "../../../../shared/infrastructure/env";
 import { parseNaira, phone } from "@quickpay/contracts";
+import { walletLimits } from "../../wallets/domain/limits";
 export async function createOperation(
   req: Request,
   kind: "payment" | "withdrawal" | "deposit",
@@ -84,7 +85,7 @@ export async function createOperation(
       503,
     );
     assert(
-      BigInt(v.amount) >= 10000n && BigInt(v.amount) <= 100000000n,
+      BigInt(v.amount) >= BigInt(walletLimits.minimum) && BigInt(v.amount) <= BigInt(walletLimits.maximum),
       "LIMIT",
       "Add between ₦100 and ₦1,000,000.",
     );
@@ -188,7 +189,7 @@ export async function createOperation(
       503,
     );
     assert(
-      BigInt(v.amount) >= 10000n && BigInt(v.amount) <= 100000000n,
+      BigInt(v.amount) >= BigInt(walletLimits.minimum) && BigInt(v.amount) <= BigInt(walletLimits.maximum),
       "LIMIT",
       "Withdraw between ₦100 and ₦1,000,000.",
     );

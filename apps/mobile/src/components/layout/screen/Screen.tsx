@@ -1,0 +1,7 @@
+import type { ReactNode } from "react";
+import { KeyboardAvoidingView, Platform, ScrollView, RefreshControl, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { FadeInDown } from "react-native-reanimated";
+export function Screen({children, title, subtitle, refreshing, onRefresh, dark = false}: {children: ReactNode; title?: string; subtitle?: string; refreshing?: boolean; onRefresh?: () => void; dark?: boolean}) {
+  return <SafeAreaView edges={["left", "right", "bottom"]} className={`flex-1 ${dark ? "bg-deep" : "bg-paper"}`}><KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={90}><ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerClassName="gap-5 px-5 pb-10 pt-5" refreshControl={onRefresh ? <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor="#6D28D9" /> : undefined}><Animated.View entering={FadeInDown.duration(260).reduceMotion(1)} className="gap-5">{title && <View className="mb-1 gap-2"><Text accessibilityRole="header" className={`text-3xl font-extrabold tracking-tight ${dark ? "text-white" : "text-ink"}`}>{title}</Text>{subtitle && <Text className={`text-base leading-6 ${dark ? "text-white/80" : "text-muted"}`}>{subtitle}</Text>}</View>}{children}</Animated.View></ScrollView></KeyboardAvoidingView></SafeAreaView>;
+}

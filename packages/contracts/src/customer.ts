@@ -1,0 +1,13 @@
+export type Wallet = {currency: "NGN"; available: string; reserved: string; rewards: string; reward_debt: string; debt: string};
+export type WalletCapability = {available: boolean; minimum: string; maximum: string; fee: string; reason: string | null; methods?: {id: string; name: string}[]};
+export type WalletCapabilities = {currency: "NGN"; deposit: WalletCapability; withdrawal: WalletCapability};
+export type ProfileUser = {id: string; name: string; email: string; email_verified: boolean; phone_number: string; phone_verified: boolean; two_factor_enabled: boolean; policy_version: string; policy_accepted_at: string};
+export type Beneficiary = {id: string; name: string; kind: "phone" | "bill"; details: {account: string; serviceId?: string}};
+export type InboxNotification = {id: string; title: string; body: string; read: boolean; created_at: string};
+export type NotificationPreferences = {pushAvailable: boolean; pushEnabled: boolean};
+export type SupportRequest = {id: string; subject: string; message: string; status: string; response: string | null; transaction_id: string | null; created_at: string};
+export type GiftProduct = {id: string; brand: string; region: string; card_type: string; min_units: string; max_units: string; rate_kobo: string};
+export type GiftQuote = {id: string; amount: string; expiresAt: string; brand: string; region: string; cardType: string};
+export type GiftSale = {id: string; status: string; reason: string | null; settlement_reference: string | null; created_at: string; amount: string; units: string; brand: string; region: string; card_type: string};
+export type ReferralReward = {id: string; amount: string; status: "pending" | "available" | "claimed" | "reversed"; available_at: string; summary: string; claimable: boolean; withdrawable: boolean; version: number};
+export type Referrals = {code: string; invited: string; rewards: ReferralReward[]};

@@ -20,6 +20,8 @@ const schema = z.object({
   MAILJET_FROM_NAME: z.string().trim().default("Quick Pay"),
   UPLOAD_DIR: z.string().default(".local/evidence"),
   SMS_ENABLED: z.enum(["true", "false"]).default("false"),
+  PUSH_ENABLED: z.enum(["true", "false"]).default("false"),
+  EXPO_ACCESS_TOKEN: z.string().optional(),
   TERMII_API_KEY: z.string().optional(),
   TERMII_BASE_URL: z.string().optional(),
   TERMII_SENDER_ID: z.string().optional(),

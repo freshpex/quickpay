@@ -1,4 +1,5 @@
 import { z } from "zod";
+export type { Wallet, WalletCapability, WalletCapabilities, ProfileUser, Beneficiary, InboxNotification, NotificationPreferences, SupportRequest, GiftProduct, GiftQuote, GiftSale, ReferralReward, Referrals } from "./customer";
 export const POLICY_VERSION = "2026-11-04-draft";
 export const phone = z
   .string()

@@ -21,11 +21,26 @@ export class ApiFailure extends Error {
     super(details.message);
   }
 }
-export async function api<T>(
+export type ClientOptions = {
+  baseUrl: string;
+  getToken?: () => Promise<string | null>;
+  onResponse?: (response: Response) => void | Promise<void>;
+  onUnauthorized?: () => void | Promise<void>;
+  credentials?: RequestCredentials;
+};
+export function createApiClient(config: ClientOptions) {
+  return <T>(path: string, options: RequestInit = {}) => request<T>(path, options, config);
+}
+async function request<T>(
   path: string,
   options: RequestInit = {},
+  config: ClientOptions,
 ): Promise<T> {
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("://"))
+    throw new Error("API paths must be relative to the configured API.");
   const headers = new Headers(options.headers);
+  const token = await config.getToken?.();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
   if (
     options.body &&
     !(options.body instanceof FormData) &&
@@ -34,8 +49,8 @@ export async function api<T>(
     headers.set("Content-Type", "application/json");
   let r: Response;
   try {
-    r = await fetch(`/api/v1${path}`, {
-      credentials: "include",
+    r = await fetch(`${config.baseUrl.replace(/\/$/, "")}${path}`, {
+      credentials: config.credentials ?? "omit",
       ...options,
       headers,
     });
@@ -47,6 +62,8 @@ export async function api<T>(
       correlationId: "",
     });
   }
+  await config.onResponse?.(r);
+  if (r.status === 401 && token) await config.onUnauthorized?.();
   const body = await r.json().catch(() => null);
   if (!r.ok) {
     const error =
@@ -92,6 +109,7 @@ export async function api<T>(
     });
   return body as T;
 }
+export const api = createApiClient({baseUrl: "/api/v1", credentials: "include"});
 export const mutation = (body: unknown, key?: string): RequestInit => ({
   method: "POST",
   headers: key ? { "Idempotency-Key": key } : {},

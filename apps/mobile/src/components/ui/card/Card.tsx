@@ -1,0 +1,5 @@
+import { Pressable, Text, View } from "react-native";
+import { ChevronRight } from "lucide-react-native";
+export function Card({children}: {children: React.ReactNode}) {return <View className="gap-4 rounded-3xl border border-line bg-white p-5">{children}</View>;}
+export function Row({label, value}: {label: string; value: string}) {return <View className="flex-row flex-wrap justify-between gap-2"><Text className="text-sm text-muted">{label}</Text><Text selectable className="max-w-full text-right text-base font-semibold text-ink">{value}</Text></View>;}
+export function LinkRow({title, body, onPress}: {title: string; body?: string; onPress: () => void}) {return <Pressable accessibilityRole="button" onPress={onPress} className="min-h-16 flex-row items-center gap-3 rounded-2xl border border-line bg-white p-4 active:bg-violet/10"><View className="flex-1 gap-1"><Text className="text-base font-bold text-ink">{title}</Text>{body && <Text className="text-sm leading-5 text-muted">{body}</Text>}</View><ChevronRight size={20} color="#6D28D9" /></Pressable>;}
