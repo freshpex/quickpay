@@ -114,14 +114,19 @@ export async function upload(req: Request) {
     "UPLOAD_TYPE",
     "This file is not a supported image.",
   );
-  const id = crypto.randomUUID(),
-    folder = resolve(env().UPLOAD_DIR);
-  await mkdir(folder, { recursive: true });
-  const path = join(folder, `${id}.enc`);
-  await writeFile(path, seal(bytes.toString("base64")), { flag: "wx" });
+  const id = crypto.randomUUID();
+  const encrypted = seal(bytes.toString("base64"));
+  let path = `database:${id}`;
+  const inDatabase = env().UPLOAD_STORAGE === "database";
+  if (!inDatabase) {
+    const folder = resolve(env().UPLOAD_DIR);
+    await mkdir(folder, { recursive: true });
+    path = join(folder, `${id}.enc`);
+    await writeFile(path, encrypted, { flag: "wx" });
+  }
   await pool.query(
-    "INSERT INTO evidence(id,user_id,file_path,mime,size) VALUES($1,$2,$3,$4,$5)",
-    [id, s.user.id, path, file.type, file.size],
+    "INSERT INTO evidence(id,user_id,file_path,mime,size,encrypted_content) VALUES($1,$2,$3,$4,$5,$6)",
+    [id, s.user.id, path, file.type, file.size, inDatabase ? encrypted : null],
   );
   return json(
     {
@@ -146,7 +151,7 @@ export async function evidence(req: Request, id: string) {
     409,
   );
   const bytes = Buffer.from(
-    unseal(await readFile(e.file_path, "utf8")),
+    unseal(e.encrypted_content ?? (await readFile(e.file_path, "utf8"))),
     "base64",
   );
   return new Response(bytes, {

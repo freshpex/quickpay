@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { checkDeployment } from "./check-deployment";
+import { supervise } from "./deployment-processes";
 
 const component = process.argv[2];
 checkDeployment(component);
@@ -43,16 +44,18 @@ const child =
         ],
         { cwd: appRoot, env: process.env, stdio: "inherit" },
       );
-let stopping = false;
+const children = [child];
+if (component === "api" && process.env.RUN_WORKER_IN_API === "true") {
+  children.push(
+    spawn(
+      process.execPath,
+      [require.resolve("tsx/cli"), "apps/worker/src/index.ts"],
+      { cwd: root, env: process.env, stdio: "inherit" },
+    ),
+  );
+}
+const stop = supervise(children, (code) => {
+  process.exitCode = code;
+});
 for (const signal of ["SIGINT", "SIGTERM"] as const)
-  process.on(signal, () => {
-    stopping = true;
-    child.kill(signal);
-  });
-child.on("error", () => {
-  console.error("Service process could not start.");
-  process.exitCode = 1;
-});
-child.on("exit", (code) => {
-  process.exitCode = code ?? (stopping ? 0 : 1);
-});
+  process.on(signal, () => stop(signal));

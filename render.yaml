@@ -1,19 +1,14 @@
 # yaml-language-server: $schema=https://render.com/schema/render.yaml.json
-# Paid services are intentional: worker, migration hooks and persistent evidence.
+#
 services:
   - type: web
     name: quickpay-api
     runtime: node
     region: frankfurt
-    plan: 1c-2g
+    plan: free
     buildCommand: corepack enable && corepack prepare pnpm@11.19.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @quickpay/api build
-    preDeployCommand: pnpm db:migrate
     startCommand: pnpm deploy:start api
     healthCheckPath: /api/v1/health
-    disk:
-      name: quickpay-evidence
-      mountPath: /var/data
-      sizeGB: 10
     envVars:
       - key: NODE_ENV
         value: production
@@ -25,6 +20,10 @@ services:
         sync: false
       - key: WEB_ORIGIN
         sync: false
+      - key: API_ORIGIN
+        sync: false
+      - key: RUN_WORKER_IN_API
+        value: "true"
       - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: DATA_ENCRYPTION_KEY
@@ -63,136 +62,29 @@ services:
         value: "false"
       - key: EXPO_ACCESS_TOKEN
         sync: false
-      - key: UPLOAD_DIR
-        value: /var/data/evidence
+      - key: UPLOAD_STORAGE
+        value: database
 
   - type: web
     name: quickpay-web
     runtime: node
     region: frankfurt
-    plan: 1c-2g
+    plan: free
     buildCommand: corepack enable && corepack prepare pnpm@11.19.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @quickpay/web build
     startCommand: pnpm deploy:start web
     healthCheckPath: /healthz
-    maxShutdownDelaySeconds: 120
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
         value: 22.14.0
-      - key: API_HOSTPORT
+      - key: API_ORIGIN
         fromService:
           name: quickpay-api
           type: web
-          property: hostport
+          envVarKey: API_ORIGIN
       - key: WEB_ORIGIN
         fromService:
           name: quickpay-api
           type: web
           envVarKey: WEB_ORIGIN
-
-  - type: worker
-    name: quickpay-worker
-    runtime: node
-    region: frankfurt
-    plan: 0.5c-512mb
-    buildCommand: corepack enable && corepack prepare pnpm@11.19.0 --activate && pnpm install --frozen-lockfile --prod=false
-    startCommand: pnpm deploy:start worker
-    maxShutdownDelaySeconds: 120
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NODE_VERSION
-        value: 22.14.0
-      - key: DATABASE_URL
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: DATABASE_URL
-      - key: DATABASE_URL_UNPOOLED
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: DATABASE_URL_UNPOOLED
-      - key: WEB_ORIGIN
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: WEB_ORIGIN
-      - key: BETTER_AUTH_SECRET
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: BETTER_AUTH_SECRET
-      - key: DATA_ENCRYPTION_KEY
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: DATA_ENCRYPTION_KEY
-      - key: MAILJET_API_KEY
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: MAILJET_API_KEY
-      - key: MAILJET_SECRET_KEY
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: MAILJET_SECRET_KEY
-      - key: MAILJET_FROM_EMAIL
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: MAILJET_FROM_EMAIL
-      - key: MAILJET_FROM_NAME
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: MAILJET_FROM_NAME
-      - key: PAYMENT_MODE
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: PAYMENT_MODE
-      - key: PAYSTACK_TRANSFERS_ENABLED
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: PAYSTACK_TRANSFERS_ENABLED
-      - key: VTPASS_ENV
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: VTPASS_ENV
-      - key: PAYSTACK_SECRET_KEY
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: PAYSTACK_SECRET_KEY
-      - key: VTPASS_API_KEY
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: VTPASS_API_KEY
-      - key: VTPASS_SECRET_KEY
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: VTPASS_SECRET_KEY
-      - key: VTPASS_PUBLIC_KEY
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: VTPASS_PUBLIC_KEY
-      - key: SMS_ENABLED
-        value: "false"
-      - key: PUSH_ENABLED
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: PUSH_ENABLED
-      - key: EXPO_ACCESS_TOKEN
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: EXPO_ACCESS_TOKEN

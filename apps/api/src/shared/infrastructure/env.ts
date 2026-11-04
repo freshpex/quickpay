@@ -19,6 +19,7 @@ const schema = z.object({
   MAILJET_FROM_EMAIL: z.union([z.email(), z.literal("")]).default(""),
   MAILJET_FROM_NAME: z.string().trim().default("Quick Pay"),
   UPLOAD_DIR: z.string().default(".local/evidence"),
+  UPLOAD_STORAGE: z.enum(["database", "filesystem"]).default("database"),
   SMS_ENABLED: z.enum(["true", "false"]).default("false"),
   PUSH_ENABLED: z.enum(["true", "false"]).default("false"),
   EXPO_ACCESS_TOKEN: z.string().optional(),

@@ -10,9 +10,10 @@ export function checkDeployment(component: string) {
   )
     throw new Error("Set WEB_ORIGIN to the final public HTTPS website URL.");
   if (component === "web") {
-    if (!process.env.API_ORIGIN && !process.env.API_HOSTPORT)
+    const apiOrigin = process.env.API_ORIGIN;
+    if (!apiOrigin || new URL(apiOrigin).protocol !== "https:")
       throw new Error(
-        "The web service needs API_ORIGIN or its Render API_HOSTPORT reference.",
+        "Set API_ORIGIN to the API's public HTTPS URL. Free Render services cannot receive private network requests.",
       );
     return;
   }
@@ -25,9 +26,9 @@ export function checkDeployment(component: string) {
     throw new Error(
       "Configure MAILJET_API_KEY, MAILJET_SECRET_KEY and MAILJET_FROM_EMAIL before deploying.",
     );
-  if (component === "api" && !e.UPLOAD_DIR.startsWith("/var/data/"))
+  if (process.env.RENDER && e.UPLOAD_STORAGE !== "database")
     throw new Error(
-      "Set UPLOAD_DIR to /var/data/evidence on the API's persistent disk.",
+      "Set UPLOAD_STORAGE=database on Render so private evidence survives restarts without a paid disk.",
     );
   if (
     e.SMS_ENABLED === "true" &&

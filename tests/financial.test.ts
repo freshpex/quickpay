@@ -48,7 +48,11 @@ import {
   deliverDevice,
   checkPushReceipt,
 } from "../apps/api/src/v1/modules/notifications/jobs/deliver-push";
-import { upload as uploadEvidence } from "../apps/api/src/v1/modules/gift-cards/routes/handler";
+import {
+  upload as uploadEvidence,
+  evidence as readEvidence,
+} from "../apps/api/src/v1/modules/gift-cards/routes/handler";
+import { unseal } from "../apps/api/src/shared/infrastructure/security";
 import { bootstrapAdmin } from "../apps/api/src/v1/modules/admin/services/bootstrap";
 import { unlockAdmin } from "../apps/api/src/v1/modules/admin/routes/access";
 import { rewardRules } from "../apps/api/src/v1/modules/admin/routes/reward-rules";
@@ -409,9 +413,34 @@ describe("native client extensions", () => {
       await pool.query("SELECT * FROM evidence WHERE id=$1", [value.id])
     ).rows[0];
     expect(row.user_id).toBe(ids.user);
-    expect(await readFile(row.file_path, "utf8")).not.toContain("private.png");
-    const { unlink } = await import("node:fs/promises");
-    await unlink(row.file_path);
+    expect(row.file_path).toBe(`database:${value.id}`);
+    expect(row.encrypted_content).not.toContain("private.png");
+    const expectedBytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0]);
+    expect(Buffer.from(unseal(row.encrypted_content), "base64")).toEqual(
+      expectedBytes,
+    );
+    const ownerRequest = new Request("http://localhost:3001", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const download = endpoint(
+      (request) => readEvidence(request, value.id),
+      true,
+    );
+    expect((await download(ownerRequest, {})).status).toBe(409);
+    // Only the test fixture marks a file clean; uploads never bypass quarantine.
+    await pool.query("UPDATE evidence SET status='clean' WHERE id=$1", [
+      value.id,
+    ]);
+    const privateDownload = await download(ownerRequest, {});
+    expect(privateDownload.status).toBe(200);
+    expect(privateDownload.headers.get("Cache-Control")).toBe("no-store");
+    expect(Buffer.from(await privateDownload.arrayBuffer())).toEqual(
+      expectedBytes,
+    );
+    const otherRequest = new Request("http://localhost:3001", {
+      headers: { Authorization: `Bearer ${await login(ids.other)}` },
+    });
+    expect((await download(otherRequest, {})).status).toBe(403);
   });
 });
 describe("exact money and request contracts", () => {
