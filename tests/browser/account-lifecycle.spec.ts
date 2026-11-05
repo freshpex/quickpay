@@ -91,7 +91,7 @@ test("real HTTP account lifecycle and customer pages", async ({
     await page.getByLabel("Email address").fill(email);
     await page.locator("#password").fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard\/?$/);
     await expect(
       page.getByRole("heading", { name: /Hello, Account/ }),
     ).toBeVisible();
@@ -129,7 +129,7 @@ test("real HTTP account lifecycle and customer pages", async ({
       page.getByText("Account setup question", { exact: true }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
-    await expect(page).toHaveURL(/\/sign-in$/);
+    await expect(page).toHaveURL(/\/sign-in\/?$/);
     await page.goto("/forgot-password");
     await page.getByLabel("Email address").fill(email);
     await page.getByRole("button", { name: "Send reset link" }).click();
@@ -151,7 +151,7 @@ test("real HTTP account lifecycle and customer pages", async ({
     await page.getByLabel("Email address").fill(email);
     await page.locator("#password").fill("UpdatedStrongPassword456!");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard\/?$/);
     expect(pageErrors).toEqual([]);
     expect(serverErrors).toEqual([]);
   } finally {

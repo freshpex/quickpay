@@ -1,6 +1,9 @@
 // Production-build HTTP checks against the disposable local test database.
 import "dotenv/config";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { access } from "node:fs/promises";
+import { staticWebServer } from "./static-web-server";
 const url = new URL(process.env.TEST_DATABASE_URL || process.env.DATABASE_URL!);
 if (!["localhost", "127.0.0.1"].includes(url.hostname))
   throw new Error("QA requires a local disposable database.");
@@ -27,24 +30,38 @@ const childEnv: NodeJS.ProcessEnv = {
 };
 const pnpm = process.env.npm_execpath;
 if (!pnpm) throw new Error("Run this script with pnpm qa:serve.");
+const directory = fileURLToPath(
+  new URL("../apps/web/.next-qa/", import.meta.url),
+);
+await access(`${directory}/index.html`);
+const web = staticWebServer(directory, childEnv.API_ORIGIN!);
+web.listen(3100, "127.0.0.1");
 const children = [
-  ["@quickpay/api", "3101"],
-  ["@quickpay/web", "3100"],
-].map(([app, port]) =>
   spawn(
     process.execPath,
-    [pnpm, "--filter", app, "exec", "next", "start", "--port", port],
+    [
+      pnpm,
+      "--filter",
+      "@quickpay/api",
+      "exec",
+      "next",
+      "start",
+      "--port",
+      "3101",
+    ],
     { env: childEnv, stdio: "inherit" },
   ),
-);
+];
 for (const signal of ["SIGINT", "SIGTERM"] as const)
   process.on(signal, () => {
+    web.close();
     for (const child of children) child.kill(signal);
   });
 for (const child of children)
   child.on("exit", (code) => {
     if (code) {
       for (const other of children) if (other !== child) other.kill();
+      web.close();
       process.exitCode = code;
     }
   });

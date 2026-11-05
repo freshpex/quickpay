@@ -80,6 +80,9 @@ services:
         source: /transactions/:transactionId
         destination: /transactions/detail/index.html
     headers:
+      - path: /opengraph-image
+        name: Content-Type
+        value: image/png
       - path: /*
         name: X-Content-Type-Options
         value: nosniff
