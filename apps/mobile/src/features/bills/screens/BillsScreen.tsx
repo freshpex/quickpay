@@ -260,7 +260,7 @@ export function BillsScreen() {
               fee={service.fee}
               recipient={review.recipient}
               onClose={() => setReview(null)}
-              onConfirm={async (password) => {
+              onConfirm={async (pin) => {
                 if (review.expires < Date.now())
                   throw new Error("Check the recipient again before paying.");
                 const v = form.getValues();
@@ -277,7 +277,7 @@ export function BillsScreen() {
                       ? { validationId: review.validationId }
                       : {}),
                   },
-                  password,
+                  pin,
                 );
                 form.reset();
                 router.replace(`/(customer)/transactions/${t.id}`);

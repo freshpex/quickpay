@@ -95,6 +95,16 @@ export const states = [
   "cancelled",
 ] as const;
 export type PaymentState = (typeof states)[number];
+export const transactionPin = z
+  .string()
+  .regex(/^\d{6}$/, "Enter your six-digit transaction PIN.");
+export const newTransactionPin = transactionPin.refine(
+  (v) =>
+    !/^(\d)\1{5}$/.test(v) &&
+    !"01234567890123456789".includes(v) &&
+    !"98765432109876543210".includes(v),
+  "Choose a PIN without repeated or sequential digits.",
+);
 export const paymentSchema = z.object({
   serviceId: z.string().min(1),
   beneficiary: z.string().trim().min(3).max(100),
@@ -102,16 +112,16 @@ export const paymentSchema = z.object({
   plan: z.string().max(100).optional(),
   phone: phone.optional(),
   validationId: z.string().uuid().optional(),
-  password: z.string().min(1),
+  pin: transactionPin,
 });
 export const withdrawalSchema = z.object({
   amount: money,
   bankCode: z.string().regex(/^\d{3,6}$/),
   accountNumber: z.string().regex(/^\d{10}$/),
   validationId: z.string().uuid(),
-  password: z.string().min(1),
+  pin: transactionPin,
 });
-export const depositSchema = z.object({ amount: money });
+export const depositSchema = z.object({ amount: money, pin: transactionPin });
 export const rewardRuleSchema = z
   .object({
     name: z.string().trim().min(3).max(100),

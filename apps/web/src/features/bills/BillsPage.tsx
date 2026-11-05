@@ -1,4 +1,5 @@
 "use client";
+import { TransactionPinField } from "../security/TransactionPinField";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -21,7 +22,7 @@ import {
 } from "@quickpay/contracts";
 import { useApi } from "../../lib/use-api";
 import { Field } from "../../components/ui/form-field";
-import { PasswordInput, inputClass } from "../../components/ui/password-input";
+import { inputClass } from "../../components/ui/password-input";
 import { Button } from "../../components/ui/button";
 import {
   LoadingState,
@@ -153,7 +154,7 @@ export function BillsPage({
               ...(data.plan ? { plan: data.plan } : {}),
               ...(data.phone ? { phone: data.phone } : {}),
               validationId: validation?.id,
-              password: new FormData(e.currentTarget).get("password"),
+              pin: new FormData(e.currentTarget).get("pin"),
             },
             key,
           ),
@@ -463,13 +464,7 @@ export function BillsPage({
                     </div>
                   ))}
                 </div>
-                <PasswordInput
-                  label="Confirm with your password"
-                  id="password"
-                  name="password"
-                  autoComplete="current-password"
-                  required
-                />
+                <TransactionPinField />
                 <p className="text-xs leading-relaxed text-ink/50">
                   Check the recipient carefully. Once confirmed, your payment
                   may not be refundable.

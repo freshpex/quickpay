@@ -95,27 +95,29 @@ async function fixture(
     const custom = extra(path, req.method(), body);
     const data =
       custom ??
-      (path === "/health"
-        ? { status: "ok" }
-        : path === "/admin/access"
-          ? { allowed: true, mfaEnabled: true }
-          : path === "/auth/get-session"
-            ? session
-            : path === "/profile"
-              ? { user: { name: "Browser Test", email_verified: true } }
-              : path === "/wallet"
-                ? {
-                    available: "2500000",
-                    reserved: "0",
-                    rewards: "0",
-                    reward_debt: "0",
-                    currency: "NGN",
-                  }
-                : path.startsWith("/payments/")
-                  ? { transaction }
-                  : path === "/payments"
-                    ? { transactions: [] }
-                    : {});
+      (path === "/security/pin"
+        ? { configured: true }
+        : path === "/health"
+          ? { status: "ok" }
+          : path === "/admin/access"
+            ? { allowed: true, mfaEnabled: true }
+            : path === "/auth/get-session"
+              ? session
+              : path === "/profile"
+                ? { user: { name: "Browser Test", email_verified: true } }
+                : path === "/wallet"
+                  ? {
+                      available: "2500000",
+                      reserved: "0",
+                      rewards: "0",
+                      reward_debt: "0",
+                      currency: "NGN",
+                    }
+                  : path.startsWith("/payments/")
+                    ? { transaction }
+                    : path === "/payments"
+                      ? { transactions: [] }
+                      : {});
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -356,9 +358,7 @@ test("bill wizard reviews beneficiary, fee and total then shows pending state", 
   await page.getByLabel("Amount (₦)").fill("1000");
   await page.getByRole("button", { name: "Review payment" }).click();
   await expect(page.getByText("₦1,000.00").first()).toBeVisible();
-  await page
-    .getByLabel("Confirm with your password", { exact: true })
-    .fill("StrongPassword123!");
+  await page.getByLabel("Transaction PIN", { exact: true }).fill("572904");
   await page.getByRole("button", { name: "Confirm and pay" }).click();
   await expect(page).toHaveURL(/\/transactions\//);
   await expect(page.getByText("processing", { exact: true })).toBeVisible();
@@ -396,9 +396,7 @@ test("withdrawal validates bank details before authorization and reservation", a
   await page.getByLabel("Amount (₦)").fill("1000");
   await page.getByRole("button", { name: "Check account and review" }).click();
   await expect(page.getByText("BROWSER TEST", { exact: true })).toBeVisible();
-  await page
-    .getByLabel("Confirm with your password", { exact: true })
-    .fill("StrongPassword123!");
+  await page.getByLabel("Transaction PIN", { exact: true }).fill("572904");
   await page.getByRole("button", { name: "Confirm withdrawal" }).click();
   await expect(page).toHaveURL(/transactions/);
   expect(submitted?.validationId).toBe("22222222-2222-4222-8222-222222222222");
@@ -507,4 +505,83 @@ test("transaction status refreshes quietly after thirty seconds and receipts dow
   expect((await download).suggestedFilename()).toBe(
     `QuickPay-receipt-${transaction.id}.pdf`,
   );
+});
+
+test("missing PIN redirects to setup and resumes deposit after saving", async ({
+  page,
+}) => {
+  let configured = false;
+  await fixture(page, (path, method, body) => {
+    if (path === "/security/pin") {
+      if (method === "POST") {
+        expect(body).toMatchObject({
+          password: "StrongPassword123!",
+          newPin: "572904",
+          confirmPin: "572904",
+        });
+        configured = true;
+        return { message: "Your transaction PIN is ready." };
+      }
+      return { configured };
+    }
+    if (path === "/wallet/capabilities")
+      return {
+        deposits: true,
+        withdrawals: true,
+        depositMethods: ["card"],
+        minimumDeposit: "10000",
+        maximumDeposit: "100000000",
+        withdrawalFee: "0",
+      };
+  });
+  await page.goto("/deposit");
+  await expect(page).toHaveURL(/settings\/?\?returnTo=.*#transaction-pin/);
+  await page
+    .getByLabel("Current login password", { exact: true })
+    .fill("StrongPassword123!");
+  await page.getByLabel("New transaction PIN", { exact: true }).fill("572904");
+  await page
+    .getByLabel("Confirm transaction PIN", { exact: true })
+    .fill("572904");
+  await page
+    .getByRole("button", { name: "Set transaction PIN", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/deposit\/?$/);
+  await expect(
+    page.getByLabel("Transaction PIN", { exact: true }),
+  ).toBeEditable();
+});
+
+test("authenticator setup explains existing password and displays a local QR code", async ({
+  page,
+}) => {
+  await fixture(page, (path) => {
+    if (path === "/auth/two-factor/enable")
+      return {
+        totpURI:
+          "otpauth://totp/Quick%20Pay:browser?secret=JBSWY3DPEHPK3PXP&issuer=Quick%20Pay",
+        backupCodes: ["backup-one", "backup-two"],
+      };
+  });
+  await page.goto("/settings#authenticator");
+  await expect(
+    page.getByText(/First enter your existing Quick Pay login password/),
+  ).toBeVisible();
+  await page
+    .getByLabel("Existing login password", { exact: true })
+    .fill("StrongPassword123!");
+  await page
+    .getByRole("button", { name: "Set up authenticator", exact: true })
+    .click();
+  await expect(page.locator("#authenticator svg")).toBeVisible();
+  await expect(
+    page.getByLabel("Six-digit code generated by your authenticator"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("JBSWY3DPEHPK3PXP", { exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: "/tmp/quickpay-security-settings.png",
+    fullPage: true,
+  });
 });

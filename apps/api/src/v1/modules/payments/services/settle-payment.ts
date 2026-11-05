@@ -1,3 +1,6 @@
+import { formatMoney } from "@quickpay/contracts";
+import { env } from "../../../../shared/infrastructure/env";
+import { queueUserEmail } from "../../../../shared/infrastructure/email/queue";
 import { atomic, enqueue } from "@quickpay/database";
 import { assert } from "../../../../shared/errors";
 import { postJournal, ensureWallet } from "../../ledger/services/post-journal";
@@ -150,6 +153,17 @@ export async function settlePayment(id: string, outcome: VerifiedOutcome) {
       ],
     );
     await enqueue(c, "receipt", { id }, `receipt:${id}:${outcome.status}`);
+    await queueUserEmail(
+      c,
+      p.user_id,
+      `Transaction ${outcome.status}`,
+      `Your ${p.kind} of ${formatMoney(p.amount)} is ${outcome.status}.
+Reference: ${p.reference}
+Fee: ${formatMoney(p.fee)}
+Open the app for your receipt and full details:
+${env().WEB_ORIGIN}/transactions/detail?id=${id}`,
+      `transaction-email:${id}:${outcome.status}`,
+    );
     return true;
   });
 }

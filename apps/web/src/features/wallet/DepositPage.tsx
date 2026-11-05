@@ -1,4 +1,5 @@
 "use client";
+import { TransactionPinField } from "../security/TransactionPinField";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, mutation } from "@quickpay/api-client";
@@ -21,9 +22,14 @@ export function DepositPage() {
       );
       const r = await api<{ transaction: Transaction }>(
         "/deposits",
-        mutation({ amount }, key),
+        mutation(
+          { amount, pin: new FormData(e.currentTarget).get("pin") },
+          key,
+        ),
       );
-      router.push(`/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`);
+      router.push(
+        `/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
     } finally {
@@ -52,6 +58,7 @@ export function DepositPage() {
           placeholder="5,000"
         />
         <p className="text-xs text-ink/50">Minimum ₦100. Maximum ₦1,000,000.</p>
+        <TransactionPinField />
         {error && <ErrorState message={error} />}
         <Button disabled={busy} className="w-full">
           {busy ? "Preparing checkout…" : "Continue to checkout"}

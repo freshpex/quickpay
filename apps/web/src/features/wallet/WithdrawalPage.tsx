@@ -1,10 +1,11 @@
 "use client";
+import { TransactionPinField } from "../security/TransactionPinField";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, mutation } from "@quickpay/api-client";
 import { formatMoney, parseNaira, type Transaction } from "@quickpay/contracts";
 import { Field } from "../../components/ui/form-field";
-import { PasswordInput, inputClass } from "../../components/ui/password-input";
+import { inputClass } from "../../components/ui/password-input";
 import { Button } from "../../components/ui/button";
 import { ErrorState } from "../../components/feedback";
 import { useApi } from "../../lib/use-api";
@@ -63,7 +64,7 @@ export function WithdrawalPage() {
             ...data,
             amount: parseNaira(data.amount),
             validationId: validation?.id,
-            password: new FormData(e.currentTarget).get("password"),
+            pin: new FormData(e.currentTarget).get("pin"),
           },
           key,
         ),
@@ -168,13 +169,7 @@ export function WithdrawalPage() {
                 </div>
               </dl>
             </div>
-            <PasswordInput
-              label="Confirm with your password"
-              id="password"
-              name="password"
-              autoComplete="current-password"
-              required
-            />
+            <TransactionPinField />
           </>
         )}
         {error && <ErrorState message={error} />}

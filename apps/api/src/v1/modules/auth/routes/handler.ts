@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { queueSecurityEmail } from "../../../../shared/infrastructure/email/queue";
 import { z } from "zod";
 import { pool } from "@quickpay/database";
 import { POLICY_VERSION, signUpSchema, password } from "@quickpay/contracts";
@@ -88,13 +90,77 @@ export async function handleAuth(req: Request) {
         revokeOtherSessions: z.boolean().optional(),
       }),
     );
-    return auth().handler(
+    const actor = path.endsWith("/change-password")
+      ? await auth().api.getSession({ headers: req.headers })
+      : null;
+    const response = await auth().handler(
       new Request(req.url, {
         method: "POST",
         headers: req.headers,
         body: JSON.stringify(v),
       }),
     );
+    if (response.ok && path.endsWith("/change-password")) {
+      if (actor)
+        await queueSecurityEmail(
+          actor.user.id,
+          "Your password changed",
+          "Your Quick Pay login password was changed. If this was not you, reset it immediately and contact support.",
+          `password-changed:${crypto.randomUUID()}`,
+        );
+    }
+    return response;
   }
-  return auth().handler(req);
+  const response = await auth().handler(req);
+  if (req.method === "POST" && response.ok) {
+    const result = await response
+      .clone()
+      .json()
+      .catch(() => null);
+    if (
+      (path.endsWith("/sign-in/email") ||
+        path.endsWith("/two-factor/verify-totp") ||
+        path.endsWith("/two-factor/verify-backup-code")) &&
+      result?.user?.id &&
+      !result.twoFactorRedirect
+    ) {
+      const agent = req.headers.get("user-agent") || "";
+      const device = /iPhone|iPad/i.test(agent)
+        ? "iPhone or iPad"
+        : /Android/i.test(agent)
+          ? "Android device"
+          : /Windows/i.test(agent)
+            ? "Windows device"
+            : /Macintosh|Mac OS/i.test(agent)
+              ? "Mac"
+              : /Linux/i.test(agent)
+                ? "Linux device"
+                : "Web or mobile client";
+      const key = createHash("sha256")
+        .update(String(result.token || crypto.randomUUID()))
+        .digest("hex");
+      await queueSecurityEmail(
+        result.user.id,
+        "New sign-in to Quick Pay",
+        `A new sign-in completed on ${new Date().toUTCString()}.
+Device: ${device}
+If this was not you, change your password and review your account security.`,
+        `login:${key}`,
+      );
+    }
+    if (
+      path.endsWith("/two-factor/verify-totp") ||
+      path.endsWith("/two-factor/disable")
+    ) {
+      const session = await auth().api.getSession({ headers: req.headers });
+      if (session)
+        await queueSecurityEmail(
+          session.user.id,
+          "Authenticator security update",
+          "An authenticator verification or settings change was completed on your account. If this was not you, contact support.",
+          `authenticator:${crypto.randomUUID()}`,
+        );
+    }
+  }
+  return response;
 }

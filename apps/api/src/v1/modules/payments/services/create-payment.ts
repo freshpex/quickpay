@@ -1,11 +1,13 @@
 import { atomic, enqueue, pool } from "@quickpay/database";
+import { queueUserEmail } from "../../../../shared/infrastructure/email/queue";
+import { env } from "../../../../shared/infrastructure/env";
 import { z } from "zod";
 import {
   paymentSchema,
   withdrawalSchema,
   depositSchema,
 } from "@quickpay/contracts";
-import { authorizeMoney, identity } from "../../../../shared/auth";
+import { authorizeMoney } from "../../../../shared/auth";
 import { body, json } from "../../../../shared/infrastructure/http";
 import { hash, seal } from "../../../../shared/infrastructure/security";
 import { assert } from "../../../../shared/errors";
@@ -25,7 +27,7 @@ import {
   paystackConfigured,
   withdrawalsConfigured,
 } from "../../deposits/providers/paystack";
-import { parseNaira, phone } from "@quickpay/contracts";
+import { parseNaira, phone, formatMoney } from "@quickpay/contracts";
 import { walletLimits } from "../../wallets/domain/limits";
 export async function createOperation(
   req: Request,
@@ -38,10 +40,7 @@ export async function createOperation(
       : kind === "withdrawal"
         ? { ...withdrawalSchema.parse(raw), kind: "withdrawal" as const }
         : { ...depositSchema.parse(raw), kind: "deposit" as const };
-  const s =
-    v.kind === "deposit"
-      ? await identity(req)
-      : await authorizeMoney(req, v.password);
+  const s = await authorizeMoney(req, v.pin);
   assert(
     s.user.emailVerified,
     "VERIFY_CONTACT",
@@ -55,7 +54,9 @@ export async function createOperation(
     "Please submit this request with a valid reference.",
   );
   const clean = Object.fromEntries(
-    Object.entries(v).filter(([k]) => k !== "password"),
+    Object.entries(v).filter(
+      ([k]) => !["password", "pin", "code", "otp"].includes(k),
+    ),
   );
   const requestHash = hash({ kind, ...clean });
   // Replay before provider reads so retries remain useful during provider outages.
@@ -268,6 +269,14 @@ export async function createOperation(
       ]);
     }
     await enqueue(c, "process-payment", { id }, `process:${id}`);
+    await queueUserEmail(
+      c,
+      s.user.id,
+      "Transaction submitted",
+      `Your ${kind} of ${formatMoney(v.amount)} has been submitted. Reference: ${reference}. Status: processing.
+${env().WEB_ORIGIN}/transactions/detail?id=${id}`,
+      `transaction-submitted:${id}`,
+    );
     return r.rows[0];
   });
   return json({ transaction: publicTransaction(transaction) }, 202);

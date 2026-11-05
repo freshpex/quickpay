@@ -22,7 +22,7 @@ export const operations = new OperationCoordinator({
         `/payments/by-key/${encodeURIComponent(key)}`,
       )
     ).transaction,
-  send: async (p, password) =>
+  send: async (p, pin) =>
     (
       await api<{ transaction: Transaction }>(
         p.kind === "deposit"
@@ -30,7 +30,7 @@ export const operations = new OperationCoordinator({
           : p.kind === "withdrawal"
             ? "/withdrawals"
             : "/payments",
-        mutation({ ...p.body, ...(password ? { password } : {}) }, p.key),
+        mutation({ ...p.body, ...(pin ? { pin } : {}) }, p.key),
       )
     ).transaction,
 });

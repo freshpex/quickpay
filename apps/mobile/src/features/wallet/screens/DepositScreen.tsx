@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { z } from "zod";
 import {
   parseNaira,
-  depositSchema,
+  money,
   type WalletCapabilities,
 } from "@quickpay/contracts";
 import { Screen } from "../../../components/layout/screen";
@@ -59,7 +59,7 @@ export function DepositScreen() {
             onPress={() =>
               void form.submit(async (v) => {
                 const value = parseNaira(v.amount);
-                depositSchema.parse({ amount: value });
+                money.parse(value);
                 if (
                   BigInt(value) < BigInt(caps.data.deposit.minimum) ||
                   BigInt(value) > BigInt(caps.data.deposit.maximum)
@@ -76,11 +76,15 @@ export function DepositScreen() {
               amount={amount}
               fee={caps.data.deposit.fee}
               recipient="Your Quick Pay wallet"
-              authorize={false}
-              onConfirm={async () => {
-                const t = await operations.submit(session!.user.id, "deposit", {
-                  amount,
-                });
+              onConfirm={async (pin) => {
+                const t = await operations.submit(
+                  session!.user.id,
+                  "deposit",
+                  {
+                    amount,
+                  },
+                  pin,
+                );
                 form.reset();
                 router.replace(`/(customer)/transactions/${t.id}`);
               }}

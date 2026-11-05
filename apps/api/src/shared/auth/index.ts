@@ -1,5 +1,5 @@
 import { pool } from "@quickpay/database";
-import { verifyPassword } from "better-auth/crypto";
+import { verifyTransactionPin } from "../../v1/modules/security/services/pin";
 import { auth } from "../../v1/modules/auth/auth";
 import { assert } from "../errors";
 import { rateLimit } from "../infrastructure/http";
@@ -40,7 +40,7 @@ export async function authorized(req: Request, permission: string) {
   );
   return s;
 }
-export async function authorizeMoney(req: Request, password: string) {
+export async function authorizeMoney(req: Request, pin: string) {
   const s = await identity(req);
   assert(
     s.user.emailVerified,
@@ -49,17 +49,6 @@ export async function authorizeMoney(req: Request, password: string) {
     403,
   );
   await rateLimit(`authorize:${s.user.id}`, 5);
-  const {
-    rows: [a],
-  } = await pool.query(
-    "SELECT password FROM auth_accounts WHERE user_id=$1 AND provider_id='credential'",
-    [s.user.id],
-  );
-  assert(
-    a?.password && (await verifyPassword({ password, hash: a.password })),
-    "AUTHORIZATION_FAILED",
-    "Your password is incorrect.",
-    403,
-  );
+  await verifyTransactionPin(s.user.id, pin);
   return s;
 }

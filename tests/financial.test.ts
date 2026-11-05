@@ -25,8 +25,17 @@ import {
   parseNaira,
   signUpSchema,
   phone,
+  newTransactionPin,
   type RewardRule,
 } from "@quickpay/contracts";
+import {
+  setTransactionPin,
+  verifyTransactionPin,
+  requestPinReset,
+  resetTransactionPin,
+} from "../apps/api/src/v1/modules/security/services/pin";
+import { pinSettings } from "../apps/api/src/v1/modules/security/routes/pin";
+import { createOperation } from "../apps/api/src/v1/modules/payments/services/create-payment";
 import { verifyAdminEmail } from "../apps/api/src/v1/modules/admin/services/verify-email";
 import { auth } from "../apps/api/src/v1/modules/auth/auth";
 import { authorized } from "../apps/api/src/shared/auth";
@@ -142,6 +151,8 @@ beforeAll(async () => {
   await user(ids.referrer);
   await user(ids.user, ids.referrer);
   await user(ids.other);
+  for (const id of [ids.user, ids.other, ids.referrer])
+    await setTransactionPin(id, "572904");
 });
 afterAll(() => pool.end());
 
@@ -1229,7 +1240,7 @@ describe("account lifecycle and ledger enforcement", () => {
           authorization: `Bearer ${login.token}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ password: testPassword }),
+        body: JSON.stringify({ pin: "572904" }),
       });
     const before = await balance(ids.referrer);
     await claimReward(request(), r.id);
@@ -1341,5 +1352,240 @@ describe("gift-card review and settlement", () => {
     expect(await balance(seller)).toBe(BigInt(q.amount));
     await expect(action(2, "settle")).rejects.toThrow();
     expect(await balance(seller)).toBe(BigInt(q.amount));
+  });
+});
+
+describe("transaction PIN security", () => {
+  it("persists failed attempts, locks, and resets only with a single-use verified email code", async () => {
+    const id = crypto.randomUUID();
+    await user(id);
+    await expect(verifyTransactionPin(id, "572904")).rejects.toMatchObject({
+      code: "PIN_REQUIRED",
+    });
+    await setTransactionPin(id, "572904");
+    expect(
+      (
+        await pool.query(
+          "SELECT pin_hash FROM transaction_pins WHERE user_id=$1",
+          [id],
+        )
+      ).rows[0].pin_hash,
+    ).not.toBe("572904");
+    for (let i = 0; i < 5; i++)
+      await expect(verifyTransactionPin(id, "111111")).rejects.toMatchObject({
+        code: i === 4 ? "PIN_LOCKED" : "PIN_INCORRECT",
+      });
+    expect(
+      (
+        await pool.query(
+          "SELECT failed_attempts FROM transaction_pins WHERE user_id=$1",
+          [id],
+        )
+      ).rows[0].failed_attempts,
+    ).toBe(5);
+    await expect(verifyTransactionPin(id, "572904")).rejects.toMatchObject({
+      code: "PIN_LOCKED",
+    });
+    await requestPinReset(id);
+    const job = (
+      await pool.query(
+        "SELECT payload FROM jobs WHERE type='email' AND payload->>'to'=$1 AND payload->>'subject'='Reset your transaction PIN' ORDER BY created_at DESC LIMIT 1",
+        [`${id}@quickpay.test`],
+      )
+    ).rows[0].payload;
+    expect(job.text).toContain("{{code}}");
+    const code = unseal(job.otpEncrypted);
+    const wrong = String((Number(code) + 1) % 1000000).padStart(6, "0");
+    await expect(
+      resetTransactionPin(id, wrong, "684207"),
+    ).rejects.toMatchObject({ code: "OTP_INVALID" });
+    expect(
+      (
+        await pool.query(
+          "SELECT attempts FROM pin_reset_challenges WHERE user_id=$1",
+          [id],
+        )
+      ).rows[0].attempts,
+    ).toBe(1);
+    await resetTransactionPin(id, code, "684207");
+    await verifyTransactionPin(id, "684207");
+    await expect(resetTransactionPin(id, code, "906248")).rejects.toMatchObject(
+      { code: "OTP_INVALID" },
+    );
+    await expect(verifyTransactionPin(id, "572904")).rejects.toMatchObject({
+      code: "PIN_INCORRECT",
+    });
+  });
+  it("requires the separate PIN for deposits, withdrawals and payments before any provider submission", async () => {
+    const id = crypto.randomUUID();
+    await user(id);
+    await setTransactionPin(id, "572904");
+    const login = await auth().api.signInEmail({
+      body: { email: `${id}@quickpay.test`, password: testPassword },
+      headers: new Headers({ "x-forwarded-for": "127.0.0.9" }),
+    });
+    const variants = [
+      ["deposit", { amount: "10000" }],
+      [
+        "withdrawal",
+        {
+          amount: "10000",
+          bankCode: "999",
+          accountNumber: "1234567890",
+          validationId: crypto.randomUUID(),
+        },
+      ],
+      [
+        "payment",
+        { amount: "10000", serviceId: "mtn", beneficiary: "08031234567" },
+      ],
+    ] as const;
+    for (const [kind, fields] of variants) {
+      const req = new Request(`http://localhost:3001/api/v1/${kind}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${login.token}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+        },
+        body: JSON.stringify({ ...fields, pin: "111111" }),
+      });
+      await expect(createOperation(req, kind)).rejects.toMatchObject({
+        code: "PIN_INCORRECT",
+      });
+    }
+    expect(
+      (
+        await pool.query(
+          "SELECT count(*)::int AS count FROM transactions WHERE user_id=$1",
+          [id],
+        )
+      ).rows[0].count,
+    ).toBe(0);
+  });
+});
+
+describe("PIN settings and account security alerts", () => {
+  it("rejects weak PINs and requires both the login password and old PIN for a change", async () => {
+    for (const value of ["111111", "123456", "987654", "1234", "abcdef"])
+      expect(newTransactionPin.safeParse(value).success).toBe(false);
+    const id = crypto.randomUUID();
+    await user(id);
+    const login = await auth().api.signInEmail({
+      body: { email: `${id}@quickpay.test`, password: testPassword },
+      headers: new Headers({ "x-forwarded-for": "127.0.0.12" }),
+    });
+    const req = (value?: unknown) =>
+      new Request("http://localhost:3001/api/v1/security/pin", {
+        method: value ? "POST" : "GET",
+        headers: {
+          Authorization: `Bearer ${login.token}`,
+          "Content-Type": "application/json",
+        },
+        ...(value ? { body: JSON.stringify(value) } : {}),
+      });
+    expect(await (await pinSettings(req())).json()).toEqual({
+      configured: false,
+      lockedUntil: null,
+    });
+    await expect(
+      pinSettings(
+        req({
+          password: "wrong-password",
+          newPin: "572904",
+          confirmPin: "572904",
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "AUTHORIZATION_FAILED" });
+    await pinSettings(
+      req({ password: testPassword, newPin: "572904", confirmPin: "572904" }),
+    );
+    expect(await (await pinSettings(req())).json()).toEqual({
+      configured: true,
+      lockedUntil: null,
+    });
+    await expect(
+      pinSettings(
+        req({
+          password: testPassword,
+          currentPin: "684207",
+          newPin: "906248",
+          confirmPin: "906248",
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "PIN_INCORRECT" });
+    await pinSettings(
+      req({
+        password: testPassword,
+        currentPin: "572904",
+        newPin: "906248",
+        confirmPin: "906248",
+      }),
+    );
+    await verifyTransactionPin(id, "906248");
+    const jobs = (
+      await pool.query(
+        "SELECT payload FROM jobs WHERE type='email' AND payload->>'to'=$1",
+        [`${id}@quickpay.test`],
+      )
+    ).rows;
+    expect(jobs.map((j) => j.payload.subject)).toEqual(
+      expect.arrayContaining([
+        "Transaction PIN set",
+        "Transaction PIN changed",
+      ]),
+    );
+    expect(JSON.stringify(jobs)).not.toMatch(/572904|906248|StrongPassword123/);
+  });
+  it("queues branded-delivery jobs for successful login and password change without exposing credentials", async () => {
+    const id = crypto.randomUUID();
+    await user(id);
+    const headers = {
+      "content-type": "application/json",
+      "expo-origin": "quickpay-dev://",
+      "x-real-ip": "127.0.0.13",
+      "x-forwarded-for": "127.0.0.13",
+      "user-agent": "QuickPay Android",
+    };
+    const response = await handleAuth(
+      new Request("http://localhost:3001/api/v1/auth/sign-in/email", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          email: `${id}@quickpay.test`,
+          password: testPassword,
+        }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    const login = await response.json();
+    const changed = await handleAuth(
+      new Request("http://localhost:3001/api/v1/auth/change-password", {
+        method: "POST",
+        headers: { ...headers, Authorization: `Bearer ${login.token}` },
+        body: JSON.stringify({
+          currentPassword: testPassword,
+          newPassword: "NewPassword456!",
+          revokeOtherSessions: true,
+        }),
+      }),
+    );
+    expect(changed.status).toBe(200);
+    const jobs = (
+      await pool.query(
+        "SELECT payload FROM jobs WHERE type='email' AND payload->>'to'=$1",
+        [`${id}@quickpay.test`],
+      )
+    ).rows;
+    expect(jobs.map((j) => j.payload.subject)).toEqual(
+      expect.arrayContaining([
+        "New sign-in to Quick Pay",
+        "Your password changed",
+      ]),
+    );
+    expect(JSON.stringify(jobs)).not.toContain(login.token);
+    expect(JSON.stringify(jobs)).not.toMatch(
+      /StrongPassword123|NewPassword456/,
+    );
   });
 });

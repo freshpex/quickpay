@@ -1,5 +1,6 @@
 import { atomic, pool } from "@quickpay/database";
 import { ruleSummary, rewardRuleSchema } from "@quickpay/contracts";
+import { transactionPin } from "@quickpay/contracts";
 import { z } from "zod";
 import { identity, authorizeMoney } from "../../../../shared/auth";
 import { json, body } from "../../../../shared/infrastructure/http";
@@ -56,8 +57,8 @@ export async function referrals(req: Request) {
   });
 }
 export async function claimReward(req: Request, id: string) {
-  const v = await body(req, z.object({ password: z.string().min(1) }));
-  const s = await authorizeMoney(req, v.password);
+  const v = await body(req, z.object({ pin: transactionPin }));
+  const s = await authorizeMoney(req, v.pin);
   await atomic(async (c) => {
     const {
       rows: [r],

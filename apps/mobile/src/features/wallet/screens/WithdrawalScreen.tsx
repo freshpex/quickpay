@@ -151,7 +151,7 @@ export function WithdrawalScreen() {
               fee={caps.data.withdrawal.fee}
               recipient={review.name}
               onClose={() => setReview(null)}
-              onConfirm={async (password) => {
+              onConfirm={async (pin) => {
                 if (review.expires < Date.now())
                   throw new Error(
                     "Please verify this account again before withdrawing.",
@@ -165,7 +165,7 @@ export function WithdrawalScreen() {
                     accountNumber: form.getValues("accountNumber"),
                     validationId: review.id,
                   },
-                  password,
+                  pin,
                 );
                 form.reset();
                 router.replace(`/(customer)/transactions/${t.id}`);

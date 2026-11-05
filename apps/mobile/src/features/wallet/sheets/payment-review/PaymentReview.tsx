@@ -3,7 +3,7 @@ import { Text } from "react-native";
 import { formatMoney } from "@quickpay/contracts";
 import { Sheet } from "../../../../components/ui/bottom-sheet/Sheet";
 import { Row } from "../../../../components/ui/card/Card";
-import { PasswordInput } from "../../../../components/ui/password-input";
+import { TransactionPinInput } from "../../../security/components/TransactionPinInput";
 import { Button } from "../../../../components/ui/button";
 import { Notice } from "../../../../components/feedback/Feedback";
 export function PaymentReview({
@@ -12,7 +12,6 @@ export function PaymentReview({
   amount,
   fee,
   recipient,
-  authorize = true,
   onConfirm,
 }: {
   open: boolean;
@@ -20,15 +19,14 @@ export function PaymentReview({
   amount: string;
   fee: string;
   recipient: string;
-  authorize?: boolean;
-  onConfirm: (password?: string) => Promise<void>;
+  onConfirm: (pin: string) => Promise<void>;
 }) {
-  const [password, setPassword] = useState(""),
+  const [pin, setPin] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const close = () => {
     if (!busy) {
-      setPassword("");
+      setPin("");
       setError("");
       onClose();
     }
@@ -45,32 +43,24 @@ export function PaymentReview({
       <Row label="Amount" value={formatMoney(amount)} />
       <Row label="Fee" value={formatMoney(fee)} />
       <Row label="Total" value={formatMoney(BigInt(amount) + BigInt(fee))} />
-      {authorize && (
-        <PasswordInput
-          label="Account password"
-          value={password}
-          onChangeText={setPassword}
-          textContentType="password"
-          autoComplete="current-password"
-        />
-      )}
+      <TransactionPinInput value={pin} onChange={setPin} onSetup={close} />
       {error && <Notice danger>{error}</Notice>}
       <Button
-        title={authorize ? "Authorize payment" : "Continue to checkout"}
+        title="Confirm with PIN"
         busy={busy}
-        disabled={authorize && !password}
+        disabled={!/^\d{6}$/.test(pin)}
         onPress={() => {
           if (busy) return;
           setBusy(true);
           setError("");
-          void onConfirm(authorize ? password : undefined)
+          void onConfirm(pin)
             .then(() => {
-              setPassword("");
+              setPin("");
               onClose();
             })
             .catch((e) => {
               setError(e.message);
-              setPassword("");
+              setPin("");
             })
             .finally(() => setBusy(false));
         }}
