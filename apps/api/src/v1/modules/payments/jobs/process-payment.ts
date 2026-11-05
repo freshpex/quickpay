@@ -62,8 +62,14 @@ export async function verifyPayment(p: PaymentRow) {
         transactions: z.object({
           status: z.string(),
           amount: z.union([z.string(), z.number()]),
-          unique_element: z.string().optional(),
-          phone: z.string().optional(),
+          unique_element: z
+            .string()
+            .nullish()
+            .transform((value) => value ?? undefined),
+          phone: z
+            .string()
+            .nullish()
+            .transform((value) => value ?? undefined),
         }),
       })
       .parse(data.content);

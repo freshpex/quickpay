@@ -2,12 +2,27 @@ import { z } from "zod";
 import { env } from "../../../../shared/infrastructure/env";
 import { assert } from "../../../../shared/errors";
 const envelope = z.object({
-  code: z.string().optional(),
-  response_description: z.string().optional(),
+  code: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? undefined),
+  response_description: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? undefined),
   content: z.unknown().optional(),
-  requestId: z.string().optional(),
-  amount: z.union([z.string(), z.number()]).optional(),
-  purchased_code: z.string().optional(),
+  requestId: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? undefined),
+  amount: z
+    .union([z.string(), z.number()])
+    .nullish()
+    .transform((value) => value ?? undefined),
+  purchased_code: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? undefined),
 });
 export function vtpassConfigured() {
   const e = env();

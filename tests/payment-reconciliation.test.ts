@@ -149,3 +149,39 @@ it("keeps an abandoned or pending Paystack checkout open instead of falsely fail
   }
   expect(mocks.settle).not.toHaveBeenCalled();
 });
+
+it("accepts null unused phone metadata while still requiring an exact verified destination, reference and amount", async () => {
+  mocks.vtpass.mockResolvedValue({
+    requestId: payment.reference,
+    purchased_code: undefined,
+    content: {
+      transactions: {
+        status: "delivered",
+        amount: "100",
+        unique_element: "08031234567",
+        phone: null,
+      },
+    },
+  });
+  await verifyPayment(payment);
+  expect(mocks.settle).toHaveBeenCalledWith(
+    payment.id,
+    expect.objectContaining({ status: "successful", amount: payment.amount }),
+  );
+  mocks.settle.mockClear();
+  mocks.vtpass.mockResolvedValue({
+    requestId: payment.reference,
+    content: {
+      transactions: {
+        status: "delivered",
+        amount: "100",
+        unique_element: null,
+        phone: null,
+      },
+    },
+  });
+  await expect(verifyPayment(payment)).rejects.toMatchObject({
+    code: "DESTINATION_MISMATCH",
+  });
+  expect(mocks.settle).not.toHaveBeenCalled();
+});

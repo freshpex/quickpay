@@ -7,7 +7,7 @@ import {
 } from "../../api/src/v1/modules/payments/jobs/process-payment";
 import { releaseRewards } from "../../api/src/v1/modules/rewards/services/rewards";
 import { env } from "../../api/src/shared/infrastructure/env";
-import { DomainError } from "../../api/src/shared/errors";
+import { jobError } from "./job-error";
 import type { PaymentRow } from "../../api/src/v1/modules/payments/repositories/payment.repository";
 import {
   deliverPush,
@@ -126,17 +126,27 @@ async function tick() {
         error instanceof Error ? error.name : "Error",
       ],
     );
+    const operation = ["process-payment", "verify-provider"].includes(job.type)
+      ? await pool
+          .query(
+            "SELECT kind FROM transactions WHERE id::text=$1 OR reference=$2 LIMIT 1",
+            [
+              typeof job.payload?.id === "string" ? job.payload.id : null,
+              typeof job.payload?.reference === "string"
+                ? job.payload.reference
+                : null,
+            ],
+          )
+          .then((result) => result.rows[0]?.kind)
+          .catch(() => undefined)
+      : undefined;
     console.error(
       JSON.stringify({
         event: failed ? "job_failed" : "job_retry",
         jobId: job.id,
         type: job.type,
-        code:
-          error instanceof DomainError
-            ? error.code
-            : error instanceof Error
-              ? error.name
-              : "Error",
+        operation,
+        ...jobError(error),
       }),
     );
   } finally {
