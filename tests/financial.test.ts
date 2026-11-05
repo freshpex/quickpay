@@ -27,6 +27,7 @@ import {
   phone,
   type RewardRule,
 } from "@quickpay/contracts";
+import { verifyAdminEmail } from "../apps/api/src/v1/modules/admin/services/verify-email";
 import { auth } from "../apps/api/src/v1/modules/auth/auth";
 import { authorized } from "../apps/api/src/shared/auth";
 import { endpoint, json } from "../apps/api/src/shared/infrastructure/http";
@@ -145,7 +146,7 @@ beforeAll(async () => {
 afterAll(() => pool.end());
 
 describe("native client extensions", () => {
-  it("provisions only the first operator with hashed credentials and no verification or MFA bypass", async () => {
+  it("provisions only the first operator with verified email, hashed credentials and mandatory MFA", async () => {
     const initial = {
       email: `bootstrap-${crypto.randomUUID()}@quickpay.test`,
       phoneNumber: "07047160299",
@@ -159,11 +160,93 @@ describe("native client extensions", () => {
       )
     ).rows[0];
     expect(row.role).toBe("admin");
-    expect(row.email_verified).toBe(false);
+    expect(row.email_verified).toBe(true);
     expect(row.phone_verified).toBe(false);
     expect(row.two_factor_enabled).toBe(false);
     expect(row.permissions).toContain("operations.write");
     expect(row.password).not.toBe(initial.password);
+    const signedIn = await handleAuth(
+      new Request("http://localhost:3001/api/v1/auth/sign-in/email", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "expo-origin": "quickpay-dev://",
+          "x-real-ip": "127.0.0.2",
+          "x-forwarded-for": "127.0.0.2",
+        },
+        body: JSON.stringify({
+          email: initial.email,
+          password: initial.password,
+        }),
+      }),
+    );
+    expect(signedIn.status).toBe(200);
+    await pool.query("UPDATE users SET email_verified=false WHERE id=$1", [
+      result.id,
+    ]);
+    await verifyAdminEmail(initial.email);
+    expect(
+      (
+        await pool.query(
+          "SELECT email_verified,two_factor_enabled FROM users WHERE id=$1",
+          [result.id],
+        )
+      ).rows[0],
+    ).toMatchObject({ email_verified: true, two_factor_enabled: false });
+    await pool.query(
+      "UPDATE users SET email_verified=false WHERE id=ANY($1::text[])",
+      [[result.id, ids.user]],
+    );
+    const repair = await readFile(
+      "packages/database/migrations/0012_operator_setup.sql",
+      "utf8",
+    );
+    await pool.query(
+      "INSERT INTO service_catalog(id,name,category,provider,min,max,enabled) VALUES('mtn','MTN','airtime','vtpass',5000,10000000,false),('custom-test','Custom','airtime','vtpass',5000,10000000,false)",
+    );
+    await pool.query(repair);
+    expect(
+      (await pool.query("SELECT enabled FROM service_catalog WHERE id='mtn'"))
+        .rows[0].enabled,
+    ).toBe(false);
+    await atomic(async (c) => {
+      await c.query(
+        "SELECT set_config('quickpay.payment_mode','sandbox',true)",
+      );
+      await c.query(repair);
+      await c.query(repair);
+    });
+    expect(
+      (await pool.query("SELECT enabled FROM service_catalog WHERE id='mtn'"))
+        .rows[0].enabled,
+    ).toBe(true);
+    expect(
+      (
+        await pool.query(
+          "SELECT enabled FROM service_catalog WHERE id='custom-test'",
+        )
+      ).rows[0].enabled,
+    ).toBe(false);
+    expect(
+      (
+        await pool.query("SELECT email_verified FROM users WHERE id=$1", [
+          result.id,
+        ])
+      ).rows[0].email_verified,
+    ).toBe(true);
+    expect(
+      (
+        await pool.query("SELECT email_verified FROM users WHERE id=$1", [
+          ids.user,
+        ])
+      ).rows[0].email_verified,
+    ).toBe(false);
+    await pool.query("UPDATE users SET email_verified=true WHERE id=$1", [
+      ids.user,
+    ]);
+    await expect(verifyAdminEmail(`${ids.user}@quickpay.test`)).rejects.toThrow(
+      "No administrator",
+    );
     await expect(
       bootstrapAdmin({
         ...initial,

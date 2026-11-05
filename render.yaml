@@ -37,7 +37,7 @@ services:
       - key: MAILJET_FROM_NAME
         value: Quick Pay
       - key: PAYMENT_MODE
-        value: disabled
+        value: sandbox
       - key: PAYSTACK_TRANSFERS_ENABLED
         value: "false"
       - key: VTPASS_ENV

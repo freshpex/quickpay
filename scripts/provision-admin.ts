@@ -15,12 +15,8 @@ try {
     password: process.env.BOOTSTRAP_ADMIN_PASSWORD,
   });
   delete process.env.BOOTSTRAP_ADMIN_PASSWORD;
-  const { auth } = await import("../apps/api/src/v1/modules/auth/auth");
-  await auth().api.sendVerificationEmail({
-    body: { email: account.email, callbackURL: "/sign-in?verified=1" },
-  });
   console.log(
-    `Initial administrator ${account.email} created with all existing admin scopes. Verification email queued. Verify email and enroll MFA before using admin tools.`,
+    `Initial administrator ${account.email} created with verified email and all existing admin scopes. Enroll MFA before using admin tools.`,
   );
 } finally {
   await pool.end();

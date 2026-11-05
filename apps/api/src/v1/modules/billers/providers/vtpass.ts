@@ -16,7 +16,7 @@ export function vtpassConfigured() {
     !!e.VTPASS_API_KEY &&
     !!e.VTPASS_SECRET_KEY &&
     !!e.VTPASS_PUBLIC_KEY &&
-    (e.PAYMENT_MODE !== "live" || e.VTPASS_ENV === "live")
+    e.VTPASS_ENV === e.PAYMENT_MODE
   );
 }
 export async function vtpass(
