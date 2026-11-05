@@ -1,57 +1,32 @@
-# Deploy Quick Pay with a Render Blueprint
+# Deploy Quick Pay on Render
 
-The root `render.yaml` creates three services in Frankfurt: a public Next.js web service, a Next.js API service and a durable background worker. They share your existing Neon PostgreSQL database; no second Render database is created. The API gets a persistent `/var/data` disk for encrypted gift-card evidence. These are paid plans; review Render's price estimate before applying the Blueprint. No resources have been created by this local preparation.
+`render.yaml` defines a static website (`quickpay-web`) and one free Node web service (`quickpay-api`). The API runs the worker alongside it and stores encrypted evidence in PostgreSQL. The website is a Next.js static export served from `apps/web/out`; it does not start a Node process or sleep with the backend.
 
-## First deployment
+## Existing deployment migration
 
-1. Put this repository in GitHub/GitLab/Bitbucket and push the source, lockfile, brand pack and `render.yaml`. Keep `.env`, `.env.local`, `.next*`, `.local` and credentials out of Git. All services use the repository root; do not set `rootDir` to an individual app because packages and assets are shared.
-2. In Render choose **New → Blueprint**, connect the repository, and select `render.yaml`. Review the three services and disk before creating them.
-3. Supply the API's requested environment values. The Blueprint shares the relevant values with the worker and the public origin with the web service; do not create different auth/encryption secrets for each service.
+Render does not convert an existing Node web service into a static site in place. Create a **Static Site** from this repository with the settings below, verify it, then move the website domain to it. Keep the old service until the replacement works. To retain the exact `quickpay-web.onrender.com` hostname, release that name on the old service and assign it to the static site in Render; confirm hostname availability before removing the old service.
 
-| Setting                                  | Value                                                                                                                                                                                                                                                                                         |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                           | Existing Neon pooled URL (hostname contains `-pooler`) for application traffic.                                                                                                                                                                                                               |
-| `DATABASE_URL_UNPOOLED`                  | Direct URL for the same Neon endpoint/database, without `-pooler`, for migrations and maintenance. The local `DATABASE_URL_UNPOOLING` spelling is supported as an alias.                                                                                                                      |
-| `WEB_ORIGIN`                             | Exact public HTTPS frontend URL, without a trailing slash. Use your custom domain or the actual `quickpay-web` Render URL. If Render assigns a suffix, copy the URL shown on the web service, update this value on `quickpay-api`, then sync/redeploy the Blueprint before creating accounts. |
-| `DATA_ENCRYPTION_KEY`                    | One stable 64-character hexadecimal key. Generate once with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Keep it backed up privately; changing it makes previously encrypted evidence/references unreadable.                                                   |
-| `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`  | Matching Mailjet account credentials.                                                                                                                                                                                                                                                         |
-| `MAILJET_FROM_EMAIL`                     | A verified, active Mailjet sender email, without a display name.                                                                                                                                                                                                                              |
-| Optional Paystack/VTpass/Termii settings | Leave empty until configuring the corresponding provider. Initial payments and SMS are disabled. These deployment settings are independent of local `.env` values.                                                                                                                            |
+- Build: `corepack enable && corepack prepare pnpm@11.19.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @quickpay/web build`
+- Publish directory: `apps/web/out`
+- Use the routes, headers and build environment from `render.yaml`. Do not set an app-level root directory; this is a monorepo.
+- Set `WEB_ORIGIN` on the API to the final frontend origin. The static site's build needs the same value for metadata. Rebuild when changing it.
+- The first rewrite proxies `/api/v1/*` to `https://quickpay-api.onrender.com/api/v1/*`. If Render assigned a different API hostname, change that destination to the actual public API URL. This same-origin proxy preserves auth cookies and evidence URLs.
+- The receipt rewrite serves a static shell for legacy `/transactions/:transactionId` links. New navigation uses `/transactions/detail?id=...`; private transaction data is fetched in the browser after authentication.
 
-`BETTER_AUTH_SECRET` is generated once by Render. The frontend's internal API address comes from `API_HOSTPORT`; no hardcoded `localhost` rewrite is used on Render. Node and pnpm versions are pinned. The worker receives the same pooled/direct database URLs and provider settings as the API through Blueprint references. Keep TLS enabled on both Neon URLs.
+For a fresh deployment, connect the repository with **New → Blueprint** and use `render.yaml`. Review the static site and API settings before applying.
 
-4. Wait for API, web and worker to report a successful deploy. Migrations run in the API pre-deploy hook and again idempotently before API/worker startup, so a fresh worker cannot begin against a missing schema. Services refuse startup when required origin/email/storage settings are missing. The deployment does not seed fake gift-card rates, customers, balances or transactions.
-5. Verify all four endpoints through the public frontend:
+## API settings
 
-```sh
-pnpm deploy:verify https://YOUR-FRONTEND-HOST
-```
+Supply `DATABASE_URL` (Neon pooled URL), `DATABASE_URL_UNPOOLED` (same database's direct URL), `WEB_ORIGIN` (frontend HTTPS origin), `API_ORIGIN` (API HTTPS origin), and one stable 64-character hexadecimal `DATA_ENCRYPTION_KEY`. Keep the encryption key backed up: changing it makes existing encrypted evidence unreadable. Render generates `BETTER_AUTH_SECRET` once.
 
-Expected: `200 /`, `200 /healthz`, `200 /api/v1/health`, `200 /api/v1/health/worker`. The API health checks PostgreSQL; frontend health checks the API. Worker health requires a heartbeat newer than two minutes. The worker refreshes it every 30 seconds and exits after sustained database failures so Render can restart it. Render has no HTTP health-check field for background workers; monitor this endpoint with an uptime monitor and enable Render deploy/crash notifications.
+Supply verified Mailjet credentials and sender settings for authentication emails. Configure provider secrets on the API. Payments, SMS and push are disabled by default; update Blueprint-managed flags in `render.yaml` before syncing so dashboard-only changes are not overwritten. Never commit secrets.
 
-6. Create a real account, confirm the verification email reaches the intended inbox, verify the link, sign in, and complete a password reset. Queue completion means Mailjet accepted the message; inspect Mailjet's activity for delivered/bounced status. Check worker logs for `worker_started` and any `job_retry` / `job_failed` events.
+The API start command runs migrations before starting the API and embedded worker. No development customers, balances or transactions are seeded.
 
-## Provider settings and updates
+## Verification
 
-Configure provider secrets on `quickpay-api`. To change Blueprint-managed non-secret flags (`PAYMENT_MODE`, `VTPASS_ENV`, `PAYSTACK_TRANSFERS_ENABLED`, `SMS_ENABLED`), edit their values in `render.yaml`, commit/push and sync the Blueprint; dashboard-only changes to these managed defaults can be overwritten on the next sync. Then redeploy API/worker so referenced secrets are refreshed. `PAYMENT_MODE` is `disabled`, `sandbox` or `live`; it is never `enabled`. The worker uses Paystack/VTpass credentials for fulfillment; it must be redeployed with the matching settings whenever the API changes. Keep services in the same region.
+Run `pnpm deploy:verify https://YOUR-FRONTEND-HOST` after deployment. Expect `200 /`, `200 /healthz`, `200 /api/v1/health`, and `200 /api/v1/health/worker`. Website health is a static response; API health checks PostgreSQL, and worker health checks its heartbeat.
 
-Enable catalog entries and reviewed fees/limits through the admin after provider access is verified. Do not run the development seed in production. New environments begin with no enabled payment products. Use a reviewed production-admin provisioning process; the local `admin:grant` helper intentionally refuses production.
+Open the website after the API has idled: the landing and login pages should appear immediately without Render's application-loading screen. Login can still wait for the free API to wake up, with feedback inside the submit button. There is no floating connection banner. Then verify signup, email verification, login, password reset, receipt navigation/refresh, and authenticated evidence access through the website proxy.
 
-The persistent API disk survives deploys but is single-instance storage. Keep one API instance while using this disk; do not enable API autoscaling or move uploads to ephemeral storage. A disk-attached service can have downtime during deploys. Keep encryption-key backups, evidence retention/deletion procedures and restore tests. Database migrations are additive and advisory-locked; failed migrations prevent startup rather than continuing with an incompatible schema.
-
-## Validate before applying
-
-```sh
-render blueprints validate render.yaml --output json
-```
-
-The Render CLI requires a valid signed-in account. Without one, validate the public schema locally:
-
-```sh
-python -m pip install pyyaml==6.0.3 jsonschema==4.25.1
-python scripts/validate-blueprint.py
-```
-
-The local schema checker also checks service references and evidence-disk wiring. Schema/build/browser checks cannot prove deployment, account-specific platform constraints or live provider delivery. The CLI validation attempted during preparation returned 401 Unauthorized; no deployment was performed.
-
-References: [Blueprint specification](https://render.com/docs/blueprint-spec), [deploy lifecycle](https://render.com/docs/deploys), [Node version](https://render.com/docs/node-version), [monorepos](https://render.com/docs/monorepo-support).
+Free API instances can sleep; background work pauses while asleep. Use an always-on API plan for continuous worker processing. Static hosting removes frontend cold starts without changing backend availability.

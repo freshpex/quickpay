@@ -16,7 +16,6 @@ import * as SplashScreen from "expo-splash-screen";
 import { SessionProvider } from "./SessionProvider";
 import { rawApiUrl, validateApiUrl } from "../lib/config";
 import { ApiFailure } from "@quickpay/api-client";
-import { ConnectionStatus } from "../components/feedback/connection-status/ConnectionStatus";
 import { connection } from "../services/api/connection";
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -95,7 +94,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                 <NetworkStatus />
                 {children}
               </BottomSheetModalProvider>
-              <ConnectionStatus />
             </SessionProvider>
           </QueryClientProvider>
         )}

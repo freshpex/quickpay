@@ -1,30 +1,23 @@
 import type { NextConfig } from "next";
-const config: NextConfig = {
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
+const config = (phase: string): NextConfig => ({
+  output: phase === PHASE_DEVELOPMENT_SERVER ? undefined : "export",
+  trailingSlash: true,
+  images: { unoptimized: true },
   distDir: process.env.NEXT_BUILD_DIR || ".next",
   transpilePackages: ["@quickpay/contracts", "@quickpay/api-client"],
-  async rewrites() {
-    return [
-      {
-        source: "/api/v1/:path*",
-        destination: `${process.env.API_ORIGIN || (process.env.API_HOSTPORT ? `http://${process.env.API_HOSTPORT}` : "http://localhost:3001")}/api/v1/:path*`,
-      },
-    ];
-  },
-  async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "DENY" },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
-          },
-        ],
-      },
-    ];
-  },
-};
+  // Local development proxies API requests; production uses Render static routes.
+  ...(phase === PHASE_DEVELOPMENT_SERVER
+    ? {
+        async rewrites() {
+          return [
+            {
+              source: "/api/v1/:path*",
+              destination: `${process.env.API_ORIGIN || (process.env.API_HOSTPORT ? `http://${process.env.API_HOSTPORT}` : "http://localhost:3001")}/api/v1/:path*`,
+            },
+          ];
+        },
+      }
+    : {}),
+});
 export default config;

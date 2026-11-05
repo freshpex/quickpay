@@ -23,7 +23,7 @@ export function DepositPage() {
         "/deposits",
         mutation({ amount }, key),
       );
-      router.push(`/transactions/${r.transaction.id}`);
+      router.push(`/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
     } finally {

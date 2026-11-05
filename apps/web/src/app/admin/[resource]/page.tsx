@@ -22,3 +22,17 @@ export default async function Page({
     notFound();
   return <AdminResourcePage resource={resource} />;
 }
+
+export function generateStaticParams() {
+  return [
+    "users",
+    "transactions",
+    "catalog",
+    "gift-products",
+    "gifts",
+    "exchanges",
+    "support",
+    "operations",
+    "audit",
+  ].map((resource) => ({ resource }));
+}

@@ -35,20 +35,18 @@ test("login waits for readiness, keeps the entered details and submits once", as
   await expect(
     page.getByRole("button", { name: "Securing connection…", exact: true }),
   ).toBeDisabled();
-  await expect(page.getByRole("status")).toContainText(
-    "Getting things ready for you",
-  );
+  await expect(page.getByRole("status")).toHaveCount(0);
   expect(api.posts).toHaveLength(0);
   await expect(page.getByLabel("Email address")).toHaveValue(
     "connection@example.com",
   );
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
   await page.screenshot({
     path: "docs/screenshots/connection-sign-in.png",
     fullPage: true,
   });
   api.release();
-  await expect(page.getByRole("alert")).toContainText(
+  await expect(page.locator("form").getByRole("alert")).toContainText(
     "Your email or password is incorrect",
   );
   expect(api.posts).toEqual(["/api/v1/auth/sign-in/email"]);
@@ -76,11 +74,7 @@ test("signup on a small phone keeps the form while connecting and continues afte
   await expect(page.getByLabel("Full name", { exact: true })).toHaveValue(
     "Connection Test",
   );
-  const status = page.getByRole("status");
-  await expect(status).toBeVisible();
-  const bounds = await status.boundingBox();
-  expect(bounds!.x).toBeGreaterThanOrEqual(0);
-  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(360);
+  await expect(page.getByRole("status")).toHaveCount(0);
   await page.screenshot({
     path: "docs/screenshots/connection-sign-up-360.png",
     fullPage: true,
