@@ -1,17 +1,45 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ShieldCheck } from "lucide-react";
 import { useApi } from "../../lib/use-api";
 import { PasswordInput } from "../../components/ui/password-input";
-export function TransactionPinField() {
+export function TransactionPinField({
+  onReady,
+}: {
+  onReady?: (ready: boolean) => void;
+}) {
   const status = useApi<{ configured: boolean }>("/security/pin"),
     router = useRouter();
   useEffect(() => {
-    if (status.data && !status.data.configured)
-      router.push(
-        `/settings?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}#transaction-pin`,
-      );
-  }, [status.data?.configured, router]);
+    onReady?.(!!status.data?.configured && !status.error);
+  }, [status.data?.configured, status.error, onReady]);
+  if (status.data && !status.data.configured)
+    return (
+      <div
+        role="status"
+        className="rounded-2xl border border-brand/20 bg-brand/5 p-5"
+      >
+        <ShieldCheck size={24} className="mb-3 text-brand" />
+        <h2 className="font-bold">Set up your transaction PIN to continue</h2>
+        <p className="my-3 text-sm leading-relaxed text-ink/70">
+          Protect your payments with a six-digit PIN. You’ll confirm your
+          current login password and choose a new PIN in Settings, then return
+          here. No payment has been submitted.
+        </p>
+        <button
+          type="button"
+          className="min-h-12 rounded-xl bg-brand px-5 py-3 text-sm font-bold text-white"
+          onClick={() =>
+            router.push(
+              `/settings?setup=pin&returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}#transaction-pin`,
+            )
+          }
+        >
+          Set up PIN and continue
+        </button>
+      </div>
+    );
   return (
     <div className="rounded-2xl border border-brand/15 bg-paper p-5">
       <PasswordInput

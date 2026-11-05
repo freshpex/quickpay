@@ -64,6 +64,13 @@ export function PinSettings() {
         <ShieldCheck size={28} color="#6d28d9" />
         <Text className="text-xl font-extrabold text-ink">Transaction PIN</Text>
       </View>
+      {params.setup === "pin" && (
+        <Notice>
+          Set up your PIN below to continue with your payment. Enter your
+          existing login password, then choose and confirm a six-digit
+          transaction PIN. After saving, you’ll return to your payment.
+        </Notice>
+      )}
       <Notice>
         Protect deposits, withdrawals and payments with a separate six-digit
         PIN. Avoid repeated or sequential digits.

@@ -35,6 +35,10 @@ import {
   resetTransactionPin,
 } from "../apps/api/src/v1/modules/security/services/pin";
 import { pinSettings } from "../apps/api/src/v1/modules/security/routes/pin";
+import { prepareDepositCheckout } from "../apps/api/src/v1/modules/deposits/services/checkout";
+import { getPayment } from "../apps/api/src/v1/modules/payments/routes/handler";
+import { resolveBank } from "../apps/api/src/v1/modules/withdrawals/routes/handler";
+import { publicTransaction } from "../apps/api/src/v1/modules/payments/repositories/payment.repository";
 import { createOperation } from "../apps/api/src/v1/modules/payments/services/create-payment";
 import { verifyAdminEmail } from "../apps/api/src/v1/modules/admin/services/verify-email";
 import { auth } from "../apps/api/src/v1/modules/auth/auth";
@@ -703,7 +707,9 @@ describe("immutable, concurrent financial records", () => {
       vi.fn().mockRejectedValue(new DOMException("Timed out", "TimeoutError")),
     );
     try {
-      await expect(processPayment(p.id)).rejects.toThrow("Timed out");
+      await expect(processPayment(p.id)).rejects.toMatchObject({
+        code: "PAYMENT_PENDING",
+      });
     } finally {
       vi.unstubAllGlobals();
       config.PAYMENT_MODE = previousMode;
@@ -1587,5 +1593,271 @@ describe("PIN settings and account security alerts", () => {
     expect(JSON.stringify(jobs)).not.toMatch(
       /StrongPassword123|NewPassword456/,
     );
+  });
+});
+
+describe("deposit checkout recovery", () => {
+  it("accepts a late verified deposit success after a failed attempt, credits once, and ignores stale failure responses", async () => {
+    for (const state of ["failed", "cancelled"]) {
+      const p = await payment("deposit", "10000", ids.user, state);
+      const before = await balance(ids.user);
+      const confirmed = {
+        status: "successful" as const,
+        amount: p.amount,
+        currency: "NGN",
+        reference: p.reference,
+        email: `${ids.user}@quickpay.test`,
+      };
+      await expect(
+        settlePayment(p.id, { ...confirmed, amount: "9999" }),
+      ).rejects.toMatchObject({ code: "VERIFICATION_MISMATCH" });
+      await expect(
+        settlePayment(p.id, { ...confirmed, email: "other@example.test" }),
+      ).rejects.toMatchObject({ code: "DESTINATION_MISMATCH" });
+      await Promise.all([
+        settlePayment(p.id, confirmed),
+        settlePayment(p.id, confirmed),
+      ]);
+      expect(await balance(ids.user)).toBe(before + 10000n);
+      expect(
+        await settlePayment(p.id, { ...confirmed, status: "failed" }),
+      ).toBe(false);
+      expect(
+        (
+          await pool.query("SELECT status FROM transactions WHERE id=$1", [
+            p.id,
+          ])
+        ).rows[0].status,
+      ).toBe("successful");
+      expect(
+        (
+          await pool.query("SELECT 1 FROM journals WHERE reference=$1", [
+            `deposit:${p.id}`,
+          ])
+        ).rowCount,
+      ).toBe(1);
+    }
+    const withdrawal = await payment(
+      "withdrawal",
+      "10000",
+      ids.user,
+      "failed",
+      { recipientCode: "expected-recipient" },
+    );
+    await expect(
+      settlePayment(withdrawal.id, {
+        status: "successful",
+        amount: withdrawal.amount,
+        currency: "NGN",
+        reference: withdrawal.reference,
+        recipient: "expected-recipient",
+      }),
+    ).rejects.toMatchObject({ code: "STATE_CONFLICT" });
+  });
+  it("serializes checkout preparation, preserves a charge confirmed during initialization, and uses the static return URL", async () => {
+    const p = await payment("deposit");
+    const config = env(),
+      originalMode = config.PAYMENT_MODE,
+      originalKey = config.PAYSTACK_SECRET_KEY;
+    config.PAYMENT_MODE = "sandbox";
+    config.PAYSTACK_SECRET_KEY = "sk_test_checkout_fixture";
+    let finish!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const before = await balance(ids.user);
+    const fetcher = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      expect(body.reference).toBe(p.reference);
+      expect(body.callback_url).toBe(
+        `${config.WEB_ORIGIN}/transactions/detail?id=${p.id}`,
+      );
+      await gate;
+      await settlePayment(p.id, {
+        status: "successful",
+        amount: p.amount,
+        currency: "NGN",
+        reference: p.reference,
+        email: `${ids.user}@quickpay.test`,
+      });
+      return Response.json({
+        status: true,
+        data: {
+          authorization_url: "https://checkout.paystack.com/local-checkout",
+          access_code: "private-code",
+          reference: p.reference,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetcher);
+    try {
+      const first = prepareDepositCheckout(p.id);
+      await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+      await prepareDepositCheckout(p.id);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+      finish();
+      await first;
+      const stored = (
+        await pool.query<PaymentRow>("SELECT * FROM transactions WHERE id=$1", [
+          p.id,
+        ])
+      ).rows[0];
+      expect(stored.status).toBe("successful");
+      expect(stored.details.checkoutUrl).toBe(
+        "https://checkout.paystack.com/local-checkout",
+      );
+      expect(stored.details).not.toHaveProperty("checkoutLeaseToken");
+      expect(stored.details).not.toHaveProperty("checkoutLeaseUntil");
+      expect(JSON.stringify(publicTransaction(stored))).not.toContain(
+        "private-code",
+      );
+      expect(await balance(ids.user)).toBe(before + 10000n);
+    } finally {
+      finish();
+      vi.unstubAllGlobals();
+      config.PAYMENT_MODE = originalMode;
+      config.PAYSTACK_SECRET_KEY = originalKey;
+    }
+  });
+  it("releases an interrupted checkout lease and retries with the same reference without falsely failing the deposit", async () => {
+    const p = await payment("deposit");
+    const config = env(),
+      originalMode = config.PAYMENT_MODE,
+      originalKey = config.PAYSTACK_SECRET_KEY;
+    config.PAYMENT_MODE = "sandbox";
+    config.PAYSTACK_SECRET_KEY = "sk_test_checkout_fixture";
+    const before = await balance(ids.user);
+    const fetcher = vi.fn().mockRejectedValueOnce(new TypeError("Interrupted"));
+    vi.stubGlobal("fetch", fetcher);
+    try {
+      await expect(prepareDepositCheckout(p.id)).rejects.toMatchObject({
+        code: "PAYMENT_PENDING",
+      });
+      let stored = (
+        await pool.query<PaymentRow>("SELECT * FROM transactions WHERE id=$1", [
+          p.id,
+        ])
+      ).rows[0];
+      expect(stored.status).toBe("processing");
+      expect(stored.details).not.toHaveProperty("checkoutLeaseToken");
+      fetcher.mockResolvedValue(
+        Response.json({
+          status: true,
+          data: {
+            authorization_url: "https://checkout.paystack.com/retry",
+            access_code: "private",
+            reference: p.reference,
+          },
+        }),
+      );
+      await prepareDepositCheckout(p.id);
+      stored = (
+        await pool.query<PaymentRow>("SELECT * FROM transactions WHERE id=$1", [
+          p.id,
+        ])
+      ).rows[0];
+      expect(stored.status).toBe("awaiting_authorization");
+      expect(await balance(ids.user)).toBe(before);
+      expect(
+        fetcher.mock.calls.map(
+          (call) => JSON.parse(String(call[1]?.body)).reference,
+        ),
+      ).toEqual([p.reference, p.reference]);
+    } finally {
+      vi.unstubAllGlobals();
+      config.PAYMENT_MODE = originalMode;
+      config.PAYSTACK_SECRET_KEY = originalKey;
+    }
+  });
+  it("prepares checkout instead of verifying an uninitialized deposit when its page is opened", async () => {
+    const id = crypto.randomUUID();
+    await user(id);
+    const login = await auth().api.signInEmail({
+      body: { email: `${id}@quickpay.test`, password: testPassword },
+      headers: new Headers({ "x-forwarded-for": "127.0.0.17" }),
+    });
+    const p = await payment("deposit", "10000", id);
+    const req = new Request(`http://localhost:3001/api/v1/payments/${p.id}`, {
+      headers: { Authorization: `Bearer ${login.token}` },
+    });
+    await getPayment(req, p.id);
+    const first = (
+      await pool.query(
+        "SELECT type FROM jobs WHERE payload->>'id'=$1 OR payload->>'reference'=$2",
+        [p.id, p.reference],
+      )
+    ).rows;
+    expect(first.map((row) => row.type)).toEqual(["process-payment"]);
+    await pool.query(
+      "UPDATE transactions SET status='awaiting_authorization',details=jsonb_build_object('checkoutUrl','https://checkout.paystack.com/ready') WHERE id=$1",
+      [p.id],
+    );
+    await getPayment(req, p.id);
+    expect(
+      (
+        await pool.query(
+          "SELECT 1 FROM jobs WHERE type='verify-provider' AND payload->>'reference'=$1",
+          [p.reference],
+        )
+      ).rowCount,
+    ).toBe(1);
+  });
+  it("bank account review never creates a withdrawal and returns an account-specific error on rejection", async () => {
+    const id = crypto.randomUUID();
+    await user(id);
+    const login = await auth().api.signInEmail({
+      body: { email: `${id}@quickpay.test`, password: testPassword },
+      headers: new Headers({ "x-forwarded-for": "127.0.0.18" }),
+    });
+    const config = env(),
+      originalMode = config.PAYMENT_MODE,
+      originalKey = config.PAYSTACK_SECRET_KEY;
+    config.PAYMENT_MODE = "sandbox";
+    config.PAYSTACK_SECRET_KEY = "sk_test_checkout_fixture";
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ status: false }))
+      .mockResolvedValueOnce(
+        Response.json({
+          status: true,
+          data: {
+            account_number: "1234567890",
+            account_name: "VERIFIED RECIPIENT",
+          },
+        }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    const req = () =>
+      new Request("http://localhost:3001/api/v1/banks/resolve", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${login.token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          bankCode: "999992",
+          accountNumber: "1234567890",
+        }),
+      });
+    try {
+      await expect(resolveBank(req())).rejects.toMatchObject({
+        code: "BANK_ACCOUNT_UNVERIFIED",
+      });
+      expect(await (await resolveBank(req())).json()).toMatchObject({
+        name: "VERIFIED RECIPIENT",
+      });
+      expect(
+        (await pool.query("SELECT 1 FROM transactions WHERE user_id=$1", [id]))
+          .rowCount,
+      ).toBe(0);
+      expect(await balance(id)).toBe(0n);
+      expect(
+        fetcher.mock.calls.every((call) => call[1]?.method === "GET"),
+      ).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+      config.PAYMENT_MODE = originalMode;
+      config.PAYSTACK_SECRET_KEY = originalKey;
+    }
   });
 });

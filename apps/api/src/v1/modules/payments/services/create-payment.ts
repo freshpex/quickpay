@@ -79,7 +79,7 @@ export async function createOperation(
   const reference =
     kind === "payment"
       ? vtReference()
-      : `qp_${crypto.randomUUID().replaceAll("-", "")}`;
+      : `qp-${crypto.randomUUID().replaceAll("-", "")}`;
   if (kind === "deposit") {
     assert(
       paystackConfigured(),

@@ -387,11 +387,21 @@ test("withdrawal validates bank details before authorization and reservation", a
     }
   });
   await page.goto("/withdraw");
-  await page.getByLabel("Search banks").fill("Browser");
+  await expect(
+    page.getByRole("searchbox", { name: "Search banks" }),
+  ).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Bank", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search banks" }).fill("Browser");
+  await expect(
+    page.getByRole("option", { name: "Browser test bank" }),
+  ).toBeVisible();
   await expect(page.getByRole("option", { name: "Another bank" })).toHaveCount(
     0,
   );
-  await page.getByLabel("Bank", { exact: true }).selectOption("999");
+  await page.getByRole("option", { name: "Browser test bank" }).click();
+  await expect(
+    page.getByRole("searchbox", { name: "Search banks" }),
+  ).toHaveCount(0);
   await page.getByLabel("Account number").fill("1234567890");
   await page.getByLabel("Amount (₦)").fill("1000");
   await page.getByRole("button", { name: "Check account and review" }).click();
@@ -507,7 +517,7 @@ test("transaction status refreshes quietly after thirty seconds and receipts dow
   );
 });
 
-test("missing PIN redirects to setup and resumes deposit after saving", async ({
+test("missing PIN explains setup before navigating and resumes deposit after saving", async ({
   page,
 }) => {
   let configured = false;
@@ -535,7 +545,24 @@ test("missing PIN redirects to setup and resumes deposit after saving", async ({
       };
   });
   await page.goto("/deposit");
-  await expect(page).toHaveURL(/settings\/?\?returnTo=.*#transaction-pin/);
+  await expect(page).toHaveURL(/\/deposit\/?$/);
+  await expect(
+    page.getByText("Set up your transaction PIN to continue", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue to checkout", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("button", { name: "Set up PIN and continue", exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    /settings\/?\?setup=pin&returnTo=.*#transaction-pin/,
+  );
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "Set up your PIN below to continue with your payment.",
+    }),
+  ).toBeVisible();
   await page
     .getByLabel("Current login password", { exact: true })
     .fill("StrongPassword123!");
@@ -584,4 +611,92 @@ test("authenticator setup explains existing password and displays a local QR cod
     path: "/tmp/quickpay-security-settings.png",
     fullPage: true,
   });
+});
+
+test("deposit prepares checkout before offering payment status checks and refreshes without replacing the page", async ({
+  page,
+}) => {
+  await page.clock.install();
+  let stage = "preparing";
+  const deposit = { ...transaction, kind: "deposit", serviceId: null };
+  await fixture(page, (path) =>
+    path === `/payments/${transaction.id}`
+      ? {
+          transaction: {
+            ...deposit,
+            status:
+              stage === "completed"
+                ? "successful"
+                : stage === "ready"
+                  ? "awaiting_authorization"
+                  : "processing",
+            details:
+              stage === "preparing"
+                ? {}
+                : {
+                    checkoutUrl: "https://checkout.paystack.com/local-checkout",
+                  },
+          },
+        }
+      : undefined,
+  );
+  await page.goto(`/transactions/detail?id=${transaction.id}`);
+  await expect(
+    page.getByRole("heading", { name: "Preparing your checkout" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Check your payment", exact: true }),
+  ).toHaveCount(0);
+  const original = await page
+    .getByText(transaction.reference, { exact: true })
+    .elementHandle();
+  stage = "ready";
+  await page.clock.runFor(2000);
+  await expect(
+    page.getByRole("link", { name: "Open secure checkout" }),
+  ).toHaveAttribute("href", "https://checkout.paystack.com/local-checkout");
+  await expect(
+    page.getByRole("heading", { name: "Complete your deposit" }),
+  ).toBeVisible();
+  stage = "completed";
+  await page.clock.runFor(30000);
+  await expect(page.getByText("successful", { exact: true })).toBeVisible();
+  expect(await original!.evaluate((node) => node.isConnected)).toBe(true);
+});
+
+test("bank picker filters in its open dropdown and supports keyboard selection without submitting", async ({
+  page,
+}) => {
+  let lookups = 0;
+  await fixture(page, (path) => {
+    if (path === "/banks")
+      return {
+        banks: [
+          { code: "999", name: "OPay bank" },
+          { code: "888", name: "Another bank" },
+        ],
+      };
+    if (path === "/banks/resolve") {
+      lookups++;
+      return {};
+    }
+  });
+  await page.goto("/withdraw");
+  await page.getByRole("combobox", { name: "Bank", exact: true }).click();
+  const search = page.getByRole("searchbox", { name: "Search banks" });
+  await search.fill("no bank has this name");
+  await expect(
+    page.getByText("No matching banks. Try another name."),
+  ).toBeVisible();
+  await search.fill("opay");
+  await expect(page.getByRole("option", { name: "OPay bank" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Another bank" })).toHaveCount(
+    0,
+  );
+  await search.press("ArrowDown");
+  await search.press("Enter");
+  await expect(
+    page.getByRole("combobox", { name: "Bank", exact: true }),
+  ).toHaveText("OPay bank");
+  expect(lookups).toBe(0);
 });

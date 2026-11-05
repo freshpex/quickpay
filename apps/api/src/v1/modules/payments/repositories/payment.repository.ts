@@ -36,6 +36,8 @@ export const publicTransaction = (r: PaymentRow) => ({
           "providerRaw",
           "initiationStarted",
           "attemptedAt",
+          "checkoutLeaseToken",
+          "checkoutLeaseUntil",
         ].includes(k),
     ),
   ),

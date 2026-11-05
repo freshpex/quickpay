@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { Text } from "react-native";
 import { router } from "expo-router";
 import { useResource } from "../../../services/api/use-resource";
 import { PasswordInput } from "../../../components/ui/password-input";
@@ -13,18 +13,25 @@ export function TransactionPinInput({
   onChange: (value: string) => void;
   onSetup?: () => void;
 }) {
-  const status = useResource<{ configured: boolean }>("/security/pin"),
-    redirected = useRef(false);
+  const status = useResource<{ configured: boolean }>("/security/pin");
   const setup = () => {
     onSetup?.();
     router.push({ pathname: "/(customer)/security", params: { setup: "pin" } });
   };
-  useEffect(() => {
-    if (status.data && !status.data.configured && !redirected.current) {
-      redirected.current = true;
-      setup();
-    }
-  }, [status.data?.configured]);
+  if (status.data && !status.data.configured)
+    return (
+      <>
+        <Text className="text-lg font-bold text-ink">
+          Set up your transaction PIN to continue
+        </Text>
+        <Notice>
+          Protect your payments with a six-digit PIN. Confirm your current login
+          password and choose a new PIN in Security settings, then return to
+          your payment. No payment has been submitted.
+        </Notice>
+        <Button title="Set up PIN and continue" onPress={setup} />
+      </>
+    );
   return (
     <>
       <PasswordInput
@@ -49,9 +56,6 @@ export function TransactionPinInput({
             onPress={() => void status.refetch()}
           />
         </>
-      )}
-      {status.data && !status.data.configured && (
-        <Button title="Set up transaction PIN" secondary onPress={setup} />
       )}
     </>
   );

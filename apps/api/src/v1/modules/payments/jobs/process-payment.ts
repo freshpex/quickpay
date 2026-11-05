@@ -7,7 +7,7 @@ import {
 } from "../../deposits/providers/paystack";
 import { vtpass } from "../../billers/providers/vtpass";
 import { unseal } from "../../../../shared/infrastructure/security";
-import { env } from "../../../../shared/infrastructure/env";
+import { prepareDepositCheckout } from "../../deposits/services/checkout";
 import { assert, DomainError } from "../../../../shared/errors";
 import { settlePayment } from "../services/settle-payment";
 import type { PaymentRow } from "../repositories/payment.repository";
@@ -26,7 +26,7 @@ export async function verifyPayment(p: PaymentRow) {
         reference: data.reference,
         email: data.customer.email,
       });
-    else if (["failed", "abandoned"].includes(data.status))
+    else if (data.status === "failed")
       await settlePayment(p.id, {
         status: "failed",
         amount: String(data.amount),
@@ -114,44 +114,14 @@ export async function processPayment(id: string) {
   } = await pool.query<PaymentRow>("SELECT * FROM transactions WHERE id=$1", [
     id,
   ]);
-  if (!p || p.status !== "processing") return;
-  if (p.details.initiationStarted) {
-    await verifyPayment(p);
+  if (!p) return;
+  if (p.kind === "deposit") {
+    await prepareDepositCheckout(id);
     return;
   }
-  if (p.kind === "deposit") {
-    const {
-      rows: [u],
-    } = await pool.query("SELECT email FROM users WHERE id=$1", [p.user_id]);
-    const data = await paystack(
-      "transaction/initialize",
-      z.object({
-        authorization_url: z.url(),
-        access_code: z.string(),
-        reference: z.string(),
-      }),
-      {
-        email: u.email,
-        amount: p.amount,
-        currency: "NGN",
-        reference: p.reference,
-        callback_url: `${env().WEB_ORIGIN}/transactions/${p.id}`,
-        metadata: { transactionId: p.id },
-      },
-    );
-    const url = new URL(data.authorization_url);
-    assert(
-      url.protocol === "https:" &&
-        (url.hostname === "checkout.paystack.com" ||
-          url.hostname.endsWith(".paystack.com")),
-      "CHECKOUT_INVALID",
-      "Checkout is not available yet.",
-      503,
-    );
-    await pool.query(
-      "UPDATE transactions SET status='awaiting_authorization',details=details||$2::jsonb,updated_at=now() WHERE id=$1",
-      [id, JSON.stringify({ checkoutUrl: data.authorization_url })],
-    );
+  if (p.status !== "processing") return;
+  if (p.details.initiationStarted) {
+    await verifyPayment(p);
     return;
   }
   if (p.kind === "withdrawal") {

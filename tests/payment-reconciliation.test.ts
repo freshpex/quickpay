@@ -13,9 +13,15 @@ vi.mock("../apps/api/src/v1/modules/payments/services/settle-payment", () => ({
   settlePayment: mocks.settle,
 }));
 vi.mock("@quickpay/database", () => ({ pool: { query: mocks.query } }));
-vi.mock("../apps/api/src/v1/modules/deposits/providers/paystack", () => ({
-  paystack: mocks.paystack,
-}));
+vi.mock(
+  "../apps/api/src/v1/modules/deposits/providers/paystack",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("../apps/api/src/v1/modules/deposits/providers/paystack")
+    >()),
+    paystack: mocks.paystack,
+  }),
+);
 vi.mock("../apps/api/src/shared/infrastructure/security", () => ({
   unseal: () =>
     JSON.stringify({ accountNumber: "1234567890", bankCode: "999" }),
@@ -121,4 +127,25 @@ it("releases a withdrawal only on a definitive provider rejection, never on an u
       expect(mocks.settle).not.toHaveBeenCalled();
     }
   }
+});
+
+it("keeps an abandoned or pending Paystack checkout open instead of falsely failing a deposit", async () => {
+  const deposit = {
+    ...payment,
+    kind: "deposit",
+    status: "awaiting_authorization",
+    details: { checkoutUrl: "https://checkout.paystack.com/test" },
+  } as PaymentRow;
+  for (const status of ["abandoned", "pending", "ongoing", "processing"]) {
+    mocks.paystack.mockResolvedValue({
+      id: 1,
+      status,
+      amount: 10000,
+      currency: "NGN",
+      reference: deposit.reference,
+      customer: { email: "owner@example.test" },
+    });
+    await verifyPayment(deposit);
+  }
+  expect(mocks.settle).not.toHaveBeenCalled();
 });

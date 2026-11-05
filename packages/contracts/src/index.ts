@@ -238,3 +238,35 @@ export type ApiError = {
     correlationId: string;
   };
 };
+export function paystackCheckoutUrl(value: unknown): string | null {
+  try {
+    const url = new URL(String(value));
+    return url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      url.hostname === "checkout.paystack.com"
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+export function isDepositPreparing(
+  t: Pick<Transaction, "kind" | "status" | "details">,
+) {
+  return (
+    t.kind === "deposit" &&
+    ["created", "processing", "awaiting_authorization"].includes(t.status) &&
+    !t.details.checkoutUrl
+  );
+}
+export function shouldRefreshTransaction(
+  t: Pick<Transaction, "kind" | "status" | "createdAt">,
+) {
+  return (
+    ["created", "processing", "awaiting_authorization"].includes(t.status) ||
+    (t.kind === "deposit" &&
+      ["failed", "cancelled"].includes(t.status) &&
+      Date.now() - new Date(t.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000)
+  );
+}

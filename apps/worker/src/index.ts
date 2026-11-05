@@ -7,6 +7,7 @@ import {
 } from "../../api/src/v1/modules/payments/jobs/process-payment";
 import { releaseRewards } from "../../api/src/v1/modules/rewards/services/rewards";
 import { env } from "../../api/src/shared/infrastructure/env";
+import { DomainError } from "../../api/src/shared/errors";
 import type { PaymentRow } from "../../api/src/v1/modules/payments/repositories/payment.repository";
 import {
   deliverPush,
@@ -49,13 +50,21 @@ async function run(type: string, payload: Record<string, unknown>) {
   }
   if (type === "reconcile") {
     const r = await pool.query<PaymentRow>(
-      "SELECT * FROM transactions WHERE (status IN ('processing','awaiting_authorization') OR (status='successful' AND kind IN ('payment','withdrawal') AND created_at>now()-interval '7 days')) AND updated_at<now()-interval '1 minute' ORDER BY updated_at LIMIT 100",
+      "SELECT * FROM transactions WHERE (status IN ('processing','awaiting_authorization') OR (status='successful' AND kind IN ('payment','withdrawal') AND created_at>now()-interval '7 days') OR (kind='deposit' AND status IN ('failed','cancelled') AND created_at>now()-interval '7 days')) AND updated_at<now()-interval '1 minute' ORDER BY updated_at LIMIT 100",
     );
     for (const p of r.rows)
       await enqueue(
         pool,
-        "verify-provider",
-        { reference: p.reference },
+        p.kind === "deposit" &&
+          p.status === "processing" &&
+          !p.details.checkoutUrl
+          ? "process-payment"
+          : "verify-provider",
+        p.kind === "deposit" &&
+          p.status === "processing" &&
+          !p.details.checkoutUrl
+          ? { id: p.id }
+          : { reference: p.reference },
         `requery:${p.id}:${Math.floor(Date.now() / 300000)}`,
       );
     return;
@@ -122,6 +131,12 @@ async function tick() {
         event: failed ? "job_failed" : "job_retry",
         jobId: job.id,
         type: job.type,
+        code:
+          error instanceof DomainError
+            ? error.code
+            : error instanceof Error
+              ? error.name
+              : "Error",
       }),
     );
   } finally {

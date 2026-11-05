@@ -31,6 +31,7 @@ export function ReferralsPage() {
   const info = useApi<Rewards>("/referrals"),
     rule = useApi<{ summary: string }>("/rewards/active-rule");
   const [claim, setClaim] = useState(""),
+    [pinReady, setPinReady] = useState(false),
     [busy, setBusy] = useState(false);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -150,8 +151,8 @@ export function ReferralsPage() {
                 className="max-w-md space-y-4 rounded-2xl border border-brand/20 bg-white p-6"
               >
                 <h2 className="font-bold">Confirm reward claim</h2>
-                <TransactionPinField />
-                <Button disabled={busy}>Confirm claim</Button>
+                <TransactionPinField onReady={setPinReady} />
+                <Button disabled={busy || !pinReady}>Confirm claim</Button>
                 <button
                   type="button"
                   onClick={() => setClaim("")}

@@ -4,7 +4,10 @@ import { assert } from "../../../../shared/errors";
 import { identity } from "../../../../shared/auth";
 import { body, json, rateLimit } from "../../../../shared/infrastructure/http";
 import { hash } from "../../../../shared/infrastructure/security";
-import { paystack } from "../../deposits/providers/paystack";
+import {
+  paystack,
+  resolvedBankAccountSchema,
+} from "../../deposits/providers/paystack";
 export async function banks(req: Request) {
   await identity(req);
   const banks: { name: string; code: string }[] = [];
@@ -36,7 +39,7 @@ export async function resolveBank(req: Request) {
   );
   const result = await paystack(
     `bank/resolve?account_number=${v.accountNumber}&bank_code=${v.bankCode}`,
-    z.object({ account_number: z.string(), account_name: z.string() }),
+    resolvedBankAccountSchema,
   );
   assert(
     result.account_number === v.accountNumber,

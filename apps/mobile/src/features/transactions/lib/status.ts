@@ -1,4 +1,8 @@
-import type { PaymentState, Transaction } from "@quickpay/contracts";
+import {
+  isDepositPreparing,
+  type PaymentState,
+  type Transaction,
+} from "@quickpay/contracts";
 export const statusLabels: Record<PaymentState, string> = {
   created: "Created",
   awaiting_authorization: "Authorization needed",
@@ -11,6 +15,10 @@ export const statusLabels: Record<PaymentState, string> = {
 export const isPending = (state: PaymentState) =>
   ["created", "awaiting_authorization", "processing"].includes(state);
 export function transactionExplanation(t: Transaction) {
+  if (isDepositPreparing(t))
+    return "We’re preparing your secure Paystack checkout. Your wallet is credited only after you complete payment. Checkout will appear here automatically.";
+  if (t.kind === "deposit" && t.details.checkoutUrl && isPending(t.status))
+    return "Open secure checkout to complete your deposit. Your wallet updates after Paystack confirms payment.";
   if (isPending(t.status))
     return "We are confirming this transaction. Check its status before starting another payment.";
   if (t.status === "reversed")

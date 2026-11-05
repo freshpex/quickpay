@@ -9,9 +9,17 @@ const allowed: Record<PaymentState, PaymentState[]> = {
   reversed: [],
   cancelled: [],
 };
-export function transition(from: PaymentState, to: PaymentState) {
+export function transition(
+  from: PaymentState,
+  to: PaymentState,
+  kind?: string,
+) {
   assert(
-    from === to || allowed[from]?.includes(to),
+    from === to ||
+      allowed[from]?.includes(to) ||
+      (kind === "deposit" &&
+        to === "successful" &&
+        ["failed", "cancelled"].includes(from)),
     "STATE_CONFLICT",
     "This payment needs a status check before it can change.",
     409,

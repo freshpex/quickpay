@@ -12,6 +12,10 @@ export {
   type ConnectionSnapshot,
 } from "./connection";
 const serviceMessages: Record<string, string> = {
+  BANK_LOOKUP_UNAVAILABLE:
+    "Account verification is temporarily unavailable. Please try again shortly. No transfer has been made.",
+  BANK_LIST_UNAVAILABLE:
+    "We could not load the banks. Please try again shortly.",
   PAYMENT_PENDING:
     "The payment provider has not confirmed this request yet. Check its status before trying again.",
   PROVIDER_PENDING:

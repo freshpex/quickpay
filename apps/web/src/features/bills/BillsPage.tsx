@@ -71,6 +71,7 @@ export function BillsPage({
     [validation, setValidation] = useState<{ id: string; name: string }>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
+    [pinReady, setPinReady] = useState(false),
     [key, setKey] = useState(() => crypto.randomUUID());
   useEffect(() => {
     if (!initialCategory) {
@@ -464,7 +465,7 @@ export function BillsPage({
                     </div>
                   ))}
                 </div>
-                <TransactionPinField />
+                <TransactionPinField onReady={setPinReady} />
                 <p className="text-xs leading-relaxed text-ink/50">
                   Check the recipient carefully. Once confirmed, your payment
                   may not be refundable.
@@ -472,7 +473,10 @@ export function BillsPage({
               </>
             )}
             {error && <ErrorState message={error} />}
-            <Button disabled={busy} className="w-full">
+            <Button
+              disabled={busy || (step !== 1 && !pinReady)}
+              className="w-full"
+            >
               {busy
                 ? "Please wait…"
                 : step === 1

@@ -9,6 +9,7 @@ import { Button } from "../../components/ui/button";
 import { ErrorState } from "../../components/feedback";
 export function DepositPage() {
   const [busy, setBusy] = useState(false),
+    [pinReady, setPinReady] = useState(false),
     [error, setError] = useState(""),
     [key] = useState(() => crypto.randomUUID());
   const router = useRouter();
@@ -58,9 +59,9 @@ export function DepositPage() {
           placeholder="5,000"
         />
         <p className="text-xs text-ink/50">Minimum ₦100. Maximum ₦1,000,000.</p>
-        <TransactionPinField />
+        <TransactionPinField onReady={setPinReady} />
         {error && <ErrorState message={error} />}
-        <Button disabled={busy} className="w-full">
+        <Button disabled={busy || !pinReady} className="w-full">
           {busy ? "Preparing checkout…" : "Continue to checkout"}
         </Button>
       </form>

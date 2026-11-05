@@ -51,7 +51,15 @@ export async function settlePayment(id: string, outcome: VerifiedOutcome) {
         "This transfer needs a further check.",
         409,
       );
-    transition(p.status, outcome.status);
+    // A late charge confirmation can follow a failed checkout attempt. Never downgrade
+    // confirmed deposits when an older failure response arrives out of order.
+    if (
+      p.kind === "deposit" &&
+      p.status === "successful" &&
+      outcome.status === "failed"
+    )
+      return false;
+    transition(p.status, outcome.status, p.kind);
     await ensureWallet(c, p.user_id);
     const amount = BigInt(p.amount),
       fee = BigInt(p.fee),

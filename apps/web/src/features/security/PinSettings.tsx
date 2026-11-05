@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { api, mutation } from "@quickpay/api-client";
@@ -11,9 +11,20 @@ export function PinSettings() {
   const status = useApi<{ configured: boolean }>("/security/pin"),
     router = useRouter();
   const [reset, setReset] = useState(false),
+    [guided, setGuided] = useState(false),
     [sent, setSent] = useState(false),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("setup") !== "pin")
+      return;
+    setGuided(true);
+    const frame = requestAnimationFrame(() =>
+      section.current?.scrollIntoView({ block: "start" }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, []);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
@@ -52,8 +63,9 @@ export function PinSettings() {
   }
   return (
     <section
+      ref={section}
       id="transaction-pin"
-      className="scroll-mt-6 space-y-5 rounded-2xl border border-brand/15 bg-white p-6 xl:col-span-2"
+      className="scroll-mt-28 space-y-5 rounded-2xl border border-brand/15 bg-white p-6 xl:col-span-2"
     >
       <div className="flex items-center gap-3">
         <span className="rounded-xl bg-brand/10 p-3 text-brand">
@@ -66,6 +78,17 @@ export function PinSettings() {
           </p>
         </div>
       </div>
+      {guided && (
+        <p
+          role="status"
+          className="rounded-xl bg-brand/5 p-4 text-sm leading-relaxed text-ink/80"
+        >
+          Set up your PIN below to continue with your payment. Enter the
+          password you already use to sign in, then choose and confirm a
+          six-digit transaction PIN. We’ll return you to your payment when you
+          save it.
+        </p>
+      )}
       <form onSubmit={submit} className="max-w-md space-y-4">
         <PasswordInput
           label="Current login password"
