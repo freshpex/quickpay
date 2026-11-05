@@ -7,7 +7,7 @@ services:
     region: frankfurt
     plan: free
     buildCommand: corepack enable && corepack prepare pnpm@11.19.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @quickpay/api build
-    startCommand: pnpm deploy:start api
+    startCommand: node --import tsx scripts/start-deployment.ts api
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
@@ -72,10 +72,10 @@ services:
     buildCommand: corepack enable && corepack prepare pnpm@11.19.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @quickpay/web build
     staticPublishPath: apps/web/out
     routes:
-      # Keep auth cookies and uploads same-origin. Update this if the API hostname changes.
+      # Keep auth cookies and uploads same-origin.
       - type: rewrite
         source: /api/v1/*
-        destination: https://quickpay-api.onrender.com/api/v1/*
+        destination: https://quickpay-api-28j7.onrender.com/api/v1/*
       - type: rewrite
         source: /transactions/:transactionId
         destination: /transactions/detail/index.html

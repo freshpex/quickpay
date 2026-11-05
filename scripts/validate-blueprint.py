@@ -27,7 +27,7 @@ assert all(api_env[key].get('sync') is False for key in ('DATABASE_URL', 'DATABA
 api = services['quickpay-api']
 web = services['quickpay-web']
 assert api['runtime'] == 'node' and api['plan'] == 'free'
-assert api['startCommand'] == 'pnpm deploy:start api'
+assert api['startCommand'] == 'node --import tsx scripts/start-deployment.ts api'
 assert web['runtime'] == 'static'
 assert web['staticPublishPath'] == 'apps/web/out'
 assert not any(key in web for key in ('startCommand', 'healthCheckPath', 'plan'))
