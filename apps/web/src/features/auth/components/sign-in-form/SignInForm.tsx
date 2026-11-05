@@ -83,9 +83,11 @@ export function SignInForm() {
       )}
       <Button disabled={busy} className="w-full">
         {busy
-          ? phase === "connecting" || phase === "slow"
-            ? "Securing connection…"
-            : "Signing you in…"
+          ? phase === "slow"
+            ? "Waiting for service…"
+            : phase === "connecting"
+              ? "Securing connection…"
+              : "Signing you in…"
           : mfa
             ? "Verify and sign in"
             : "Sign in"}

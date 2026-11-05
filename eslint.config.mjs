@@ -10,6 +10,7 @@ export default ts.config(
       "playwright-report/**",
       "apps/mobile/.expo/**",
       "apps/mobile/dist/**",
+      "apps/web/out/**",
       "apps/mobile/android/**",
       "apps/mobile/ios/**",
       ".local/**",

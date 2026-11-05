@@ -119,7 +119,9 @@ export function SignInForm() {
         title={
           (form.formState.isSubmitting || mfaBusy) &&
           (phase === "connecting" || phase === "slow")
-            ? "Securing connection…"
+            ? phase === "slow"
+              ? "Waiting for service…"
+              : "Securing connection…"
             : mfa
               ? "Verify and sign in"
               : "Sign in"

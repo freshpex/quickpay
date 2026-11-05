@@ -85,3 +85,50 @@ test("signup on a small phone keeps the form while connecting and continues afte
   ).toBeVisible();
   expect(api.posts).toEqual(["/api/v1/auth/sign-up/email"]);
 });
+test("login continues automatically after a wake-up longer than two minutes", async ({
+  page,
+}) => {
+  await page.clock.install();
+  let awake = false;
+  const posts: string[] = [];
+  await page.route("**/api/v1/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/health"))
+      return awake
+        ? route.fulfill({ json: { status: "ok" } })
+        : route.fulfill({ status: 503, body: "Service starting" });
+    if (route.request().method() === "POST") posts.push(path);
+    return route.fulfill({
+      status: 401,
+      json: { code: "INVALID_EMAIL_OR_PASSWORD" },
+    });
+  });
+  await page.goto("/sign-in");
+  await page.getByLabel("Email address").fill("connection@example.com");
+  await page.getByLabel("Password", { exact: true }).fill("LongPassword123!");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.clock.runFor(125000);
+  await expect(
+    page.getByRole("button", { name: "Waiting for service…", exact: true }),
+  ).toBeDisabled();
+  await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.getByLabel("Email address")).toHaveValue(
+    "connection@example.com",
+  );
+  await expect(page.getByLabel("Password", { exact: true })).toHaveValue(
+    "LongPassword123!",
+  );
+  expect(posts).toEqual([]);
+  awake = true;
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(3001);
+      return posts.length;
+    })
+    .toBe(1);
+  await expect(page.locator("form").getByRole("alert")).toContainText(
+    "Your email or password is incorrect",
+  );
+  expect(posts).toEqual(["/api/v1/auth/sign-in/email"]);
+});

@@ -162,3 +162,82 @@ it("does not queue offline submissions for automatic replay", async () => {
   expect(send).not.toHaveBeenCalled();
   expect(connection.getSnapshot().phase).toBe("offline");
 });
+it("waits through a startup longer than two minutes and sends login only once", async () => {
+  vi.useFakeTimers();
+  let awake = false;
+  const send = vi.fn(async (input: RequestInfo | URL) =>
+    String(input) === health
+      ? awake
+        ? Response.json({ status: "ok" })
+        : new Response("Application loading", {
+            headers: { "Content-Type": "text/html" },
+          })
+      : Response.json({ session: "signed-in" }),
+  );
+  const connection = createConnectionRecovery({
+    healthUrl: health,
+    fetcher: send,
+  });
+  const outcome = connection.fetch(
+    "https://api.example/api/v1/auth/sign-in/email",
+    {
+      method: "POST",
+      body: "entered credentials",
+    },
+  );
+  await vi.advanceTimersByTimeAsync(150000);
+  expect(connection.getSnapshot().phase).toBe("slow");
+  expect(send.mock.calls.every(([url]) => String(url) === health)).toBe(true);
+  awake = true;
+  await vi.advanceTimersByTimeAsync(3000);
+  expect(await (await outcome).json()).toEqual({ session: "signed-in" });
+  expect(
+    send.mock.calls.filter(([url]) => String(url).includes("sign-in")),
+  ).toHaveLength(1);
+});
+it("bounds the default wake-up wait at five minutes without sending a queued login", async () => {
+  vi.useFakeTimers();
+  const send = vi.fn<typeof fetch>(
+    async () => new Response("Starting", { status: 503 }),
+  );
+  const connection = createConnectionRecovery({
+    healthUrl: health,
+    fetcher: send,
+  });
+  const outcome = expect(
+    connection.fetch("https://api.example/api/v1/auth/sign-in/email", {
+      method: "POST",
+    }),
+  ).rejects.toBeInstanceOf(ConnectionUnavailable);
+  await vi.advanceTimersByTimeAsync(299999);
+  expect(connection.getSnapshot().phase).toBe("slow");
+  await vi.advanceTimersByTimeAsync(1);
+  await outcome;
+  expect(connection.getSnapshot().phase).toBe("unavailable");
+  expect(send.mock.calls.every(([url]) => String(url) === health)).toBe(true);
+});
+it("retries a stalled health probe and recovers without losing the shared wait", async () => {
+  vi.useFakeTimers();
+  let attempts = 0;
+  const send = vi.fn<typeof fetch>((_input, init) => {
+    if (++attempts > 1) return Promise.resolve(Response.json({ status: "ok" }));
+    return new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener(
+        "abort",
+        () => reject(new Error("Probe timed out")),
+        { once: true },
+      );
+    });
+  });
+  const connection = createConnectionRecovery({
+    healthUrl: health,
+    fetcher: send,
+  });
+  const ready = connection.ready();
+  await vi.advanceTimersByTimeAsync(30000);
+  expect(send).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(3000);
+  await ready;
+  expect(connection.getSnapshot().phase).toBe("ready");
+  expect(send).toHaveBeenCalledTimes(2);
+});

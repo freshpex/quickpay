@@ -59,7 +59,7 @@ export function createConnectionRecovery(options: {
   let flight: Promise<void> | undefined;
   const listeners = new Set<() => void>();
   const raw: typeof fetch = (...args) => (options.fetcher || fetch)(...args);
-  const budget = options.budgetMs ?? 120000;
+  const budget = options.budgetMs ?? 300000;
   const emit = (phase: ConnectionPhase) => {
     if (snapshot.phase === phase) return;
     snapshot = { phase };
@@ -77,7 +77,7 @@ export function createConnectionRecovery(options: {
   }
   async function probe() {
     const started = Date.now();
-    // Avoid flashing a banner on a healthy, fast connection.
+    // Keep fast requests quiet; auth forms can show progress during longer waits.
     const notice = setTimeout(() => emit("connecting"), 500);
     const slow = setTimeout(() => emit("slow"), 15000);
     try {
@@ -86,7 +86,7 @@ export function createConnectionRecovery(options: {
         const controller = new AbortController();
         const timer = setTimeout(
           () => controller.abort(),
-          Math.min(options.probeMs ?? 12000, budget - (Date.now() - started)),
+          Math.min(options.probeMs ?? 30000, budget - (Date.now() - started)),
         );
         try {
           const response = await raw(options.healthUrl, {
