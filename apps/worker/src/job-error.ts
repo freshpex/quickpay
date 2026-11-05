@@ -1,5 +1,22 @@
 import { z } from "zod";
 import { DomainError } from "../../api/src/shared/errors";
+function validationIssues(
+  issues: z.ZodError["issues"],
+  prefix: PropertyKey[] = [],
+): { path: string; code: string }[] {
+  return issues.flatMap((issue) =>
+    issue.code === "invalid_union"
+      ? issue.errors.flatMap((branch) =>
+          validationIssues(branch, [...prefix, ...issue.path]),
+        )
+      : [
+          {
+            path: [...prefix, ...issue.path].map(String).join("."),
+            code: issue.code,
+          },
+        ],
+  );
+}
 // Provider payloads, customer data, credentials and validation input stay out of logs.
 export function jobError(error: unknown) {
   return {
@@ -11,10 +28,7 @@ export function jobError(error: unknown) {
           : "Error",
     ...(error instanceof z.ZodError
       ? {
-          issues: error.issues.map((issue) => ({
-            path: issue.path.join("."),
-            code: issue.code,
-          })),
+          issues: validationIssues(error.issues).slice(0, 12),
         }
       : {}),
   };

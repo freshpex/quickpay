@@ -57,30 +57,40 @@ export async function verifyPayment(p: PaymentRow) {
       });
   } else if (p.kind === "payment") {
     const data = await vtpass("requery", "POST", { request_id: p.reference });
+    const transactionSchema = z.object({
+      status: z.string(),
+      amount: z.union([z.string(), z.number()]),
+      unique_element: z
+        .string()
+        .nullish()
+        .transform((value) => value ?? undefined),
+      phone: z
+        .string()
+        .nullish()
+        .transform((value) => value ?? undefined),
+      request_id: z
+        .string()
+        .nullish()
+        .transform((value) => value ?? undefined),
+    });
     const content = z
-      .object({
-        transactions: z.object({
-          status: z.string(),
-          amount: z.union([z.string(), z.number()]),
-          unique_element: z
-            .string()
-            .nullish()
-            .transform((value) => value ?? undefined),
-          phone: z
-            .string()
-            .nullish()
-            .transform((value) => value ?? undefined),
-        }),
-      })
+      .union([
+        z
+          .object({ transactions: transactionSchema })
+          .transform((value) => value.transactions),
+        transactionSchema,
+      ])
       .parse(data.content);
+    const reference = data.requestId || content.request_id;
     assert(
-      data.requestId === p.reference,
+      reference === p.reference &&
+        (!data.requestId || data.requestId === p.reference) &&
+        (!content.request_id || content.request_id === p.reference),
       "REFERENCE_MISMATCH",
       "This payment needs a further check.",
       409,
     );
-    const destination =
-      content.transactions.unique_element || content.transactions.phone;
+    const destination = content.unique_element || content.phone;
     const storedPhone = ["airtime", "data"].includes(String(p.details.category))
       ? phone.safeParse(p.details.beneficiary)
       : null;
@@ -97,19 +107,19 @@ export async function verifyPayment(p: PaymentRow) {
       409,
     );
     const status =
-      content.transactions.status === "delivered"
+      content.status === "delivered"
         ? "successful"
-        : content.transactions.status === "reversed"
+        : content.status === "reversed"
           ? "reversed"
-          : content.transactions.status === "failed"
+          : content.status === "failed"
             ? "failed"
             : null;
     if (status)
       await settlePayment(p.id, {
         status,
-        amount: parseNaira(String(content.transactions.amount)),
+        amount: parseNaira(String(content.amount)),
         currency: "NGN",
-        reference: data.requestId!,
+        reference,
         fulfillment: data.purchased_code,
       });
   }

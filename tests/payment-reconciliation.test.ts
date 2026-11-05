@@ -185,3 +185,62 @@ it("accepts null unused phone metadata while still requiring an exact verified d
   });
   expect(mocks.settle).not.toHaveBeenCalled();
 });
+
+it("verifies the flat requery response as well as the wrapped payment response", async () => {
+  mocks.vtpass.mockResolvedValue({
+    code: "000",
+    requestId: payment.reference,
+    content: {
+      status: "delivered",
+      amount: "100.00",
+      unique_element: "+2348031234567",
+      phone: null,
+    },
+  });
+  await verifyPayment(payment);
+  expect(mocks.settle).toHaveBeenCalledWith(
+    payment.id,
+    expect.objectContaining({
+      status: "successful",
+      amount: "10000",
+      reference: payment.reference,
+    }),
+  );
+});
+it("accepts an exact merchant request ID in the transaction body and rejects conflicting or missing IDs", async () => {
+  const content = {
+    status: "delivered",
+    amount: "100",
+    unique_element: "08031234567",
+    request_id: payment.reference,
+  };
+  mocks.vtpass.mockResolvedValue({ content });
+  await verifyPayment(payment);
+  expect(mocks.settle).toHaveBeenCalledTimes(1);
+  mocks.settle.mockClear();
+  for (const response of [
+    { requestId: "wrong-reference", content },
+    { content: { ...content, request_id: null } },
+    {
+      requestId: payment.reference,
+      content: { ...content, request_id: "other-reference" },
+    },
+  ]) {
+    mocks.vtpass.mockResolvedValue(response);
+    await expect(verifyPayment(payment)).rejects.toMatchObject({
+      code: "REFERENCE_MISMATCH",
+    });
+  }
+  expect(mocks.settle).not.toHaveBeenCalled();
+});
+it("does not settle an incomplete or wrong-recipient flat requery response", async () => {
+  for (const content of [
+    { status: "delivered", amount: null, unique_element: "08031234567" },
+    { status: "delivered", amount: "100", unique_element: "08031234568" },
+    { transactions: null },
+  ]) {
+    mocks.vtpass.mockResolvedValue({ requestId: payment.reference, content });
+    await expect(verifyPayment(payment)).rejects.toThrow();
+  }
+  expect(mocks.settle).not.toHaveBeenCalled();
+});
