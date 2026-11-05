@@ -8,8 +8,6 @@ GET/HEAD requests can be repeated once after a transport/gateway interruption an
 
 Readiness is a connectivity check, not an additional security handshake or authentication proof. Backend authorization remains unchanged. Native Better Auth requests use the same connection coordinator through its custom fetch integration with automatic fetch retries disabled. Existing signed credentials stay in SecureStore. Failed readiness never revokes a session or clears private data; actual server revocation still does.
 
-The global web retry refreshes API-backed views and account loading after a successful check. Native queries invalidate after a failed connection recovers; session screens also provide their existing reconnect action. No mutation is replayed by either retry button.
+There are no global server-connecting banners. Auth forms keep their inline button loading state while waiting for readiness. Native queries invalidate after a failed connection recovers; session screens retain their reconnect action.
 
-If the **website service itself** is asleep, Render controls the first HTML response before any Quick Pay JavaScript can run. Its platform wake-up screen cannot be replaced by an application banner. Once the website has loaded, this recovery experience handles backend cold starts on its pages. Native clients can show their own feedback immediately. Free-plan limits remain documented in [Render deployment](RENDER.md).
-
-Tests cover shared probing, signup gating, safe read recovery, no repeated writes, cancellation, offline behavior, genuine API errors and deadline/slow states. Browser tests cover real rendered sign-in/signup feedback with a deliberately held readiness response and preserved input on desktop and a small phone. These are controlled failure simulations, not proof of a deployed Render cold start or a physical-device test.
+The website is a Next.js static export on Render's CDN. It loads independently of the backend. The same-origin `/api/v1/*` rewrite forwards requests to the API; only API operations can wait for its free service to wake up. See [Render deployment](RENDER.md).

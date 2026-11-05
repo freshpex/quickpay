@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
-import { ConnectionStatus } from "../components/feedback/connection-status/ConnectionStatus";
 import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -69,7 +68,6 @@ export default function RootLayout({
         </a>
         {children}
         <Toaster position="top-right" richColors closeButton />
-        <ConnectionStatus />
       </body>
     </html>
   );

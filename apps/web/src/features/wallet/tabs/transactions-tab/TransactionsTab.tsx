@@ -21,7 +21,7 @@ export function TransactionsTab({
       {transactions.map((t) => (
         <Link
           key={t.id}
-          href={`/transactions/${t.id}`}
+          href={`/transactions/detail?id=${encodeURIComponent(t.id)}`}
           className="flex min-h-24 flex-wrap items-center justify-between gap-4 p-4 transition hover:bg-paper md:px-6"
         >
           <div className="flex min-w-0 items-center gap-3">

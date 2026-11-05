@@ -65,24 +65,39 @@ services:
       - key: UPLOAD_STORAGE
         value: database
 
+  # Static CDN hosting: pages are available even while the API is asleep.
   - type: web
     name: quickpay-web
-    runtime: node
-    region: frankfurt
-    plan: free
+    runtime: static
     buildCommand: corepack enable && corepack prepare pnpm@11.19.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @quickpay/web build
-    startCommand: pnpm deploy:start web
-    healthCheckPath: /healthz
+    staticPublishPath: apps/web/out
+    routes:
+      # Keep auth cookies and uploads same-origin. Update this if the API hostname changes.
+      - type: rewrite
+        source: /api/v1/*
+        destination: https://quickpay-api.onrender.com/api/v1/*
+      - type: rewrite
+        source: /transactions/:transactionId
+        destination: /transactions/detail/index.html
+    headers:
+      - path: /opengraph-image
+        name: Content-Type
+        value: image/png
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: NODE_VERSION
         value: 22.14.0
-      - key: API_ORIGIN
-        fromService:
-          name: quickpay-api
-          type: web
-          envVarKey: API_ORIGIN
       - key: WEB_ORIGIN
         fromService:
           name: quickpay-api

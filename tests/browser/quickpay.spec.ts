@@ -12,7 +12,7 @@ test("landing remains readable with JavaScript disabled", async ({
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Get started" }).first(),
-  ).toHaveAttribute("href", "/sign-up");
+  ).toHaveAttribute("href", "/sign-up/");
   await expect(
     page.getByText(
       "Choose a service. Check who you are paying, the amount and any fees. You stay in control.",
@@ -312,7 +312,7 @@ test("signup password buttons, confirmation and unchecked terms validate", async
   await expect(page.getByText("Your passwords do not match.")).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Terms and Conditions" }),
-  ).toHaveAttribute("href", "/terms");
+  ).toHaveAttribute("href", "/terms/");
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
