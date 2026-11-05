@@ -11,6 +11,7 @@ import { useApi } from "../../lib/use-api";
 export function WithdrawalPage() {
   const router = useRouter();
   const banks = useApi<{ banks: { name: string; code: string }[] }>("/banks");
+  const [bankSearch, setBankSearch] = useState("");
   const [data, setData] = useState({
       amount: "",
       bankCode: "",
@@ -67,7 +68,9 @@ export function WithdrawalPage() {
           key,
         ),
       );
-      router.push(`/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`);
+      router.push(
+        `/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
     } finally {
@@ -95,6 +98,14 @@ export function WithdrawalPage() {
           >
             Bank
           </label>
+          <Field
+            id="bankSearch"
+            label="Search banks"
+            type="search"
+            value={bankSearch}
+            onChange={(e) => setBankSearch(e.target.value)}
+            placeholder="Type a bank name"
+          />
           <select
             id="bankCode"
             value={data.bankCode}
@@ -103,11 +114,19 @@ export function WithdrawalPage() {
             className={inputClass}
           >
             <option value="">Choose a bank</option>
-            {banks.data?.banks.map((b) => (
-              <option key={b.code} value={b.code}>
-                {b.name}
-              </option>
-            ))}
+            {banks.data?.banks
+              .filter(
+                (b) =>
+                  b.code === data.bankCode ||
+                  b.name
+                    .toLowerCase()
+                    .includes(bankSearch.trim().toLowerCase()),
+              )
+              .map((b) => (
+                <option key={b.code} value={b.code}>
+                  {b.name}
+                </option>
+              ))}
           </select>
         </div>
         <Field

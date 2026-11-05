@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parsePhoneNumberFromString } from "libphonenumber-js/max";
 export type {
   Wallet,
   WalletCapability,
@@ -17,15 +18,30 @@ export type {
 export const POLICY_VERSION = "2026-11-04-draft";
 export const phone = z
   .string()
-  .transform((v) => v.replace(/[\s()-]/g, ""))
-  .transform((v) =>
-    v.startsWith("0") ? `+234${v.slice(1)}` : v.startsWith("234") ? `+${v}` : v,
-  )
-  .pipe(
-    z
-      .string()
-      .regex(/^\+234[789]\d{9}$/, "Enter a valid Nigerian mobile number."),
-  );
+  .trim()
+  .transform((value, ctx) => {
+    const raw = value.startsWith("234") ? `+${value}` : value;
+    const number = /^[+\d\s().-]+$/.test(raw)
+      ? parsePhoneNumberFromString(raw, {
+          defaultCountry: "NG",
+          extract: false,
+        })
+      : undefined;
+    if (
+      !number ||
+      number.country !== "NG" ||
+      !number.isValid() ||
+      number.getType() !== "MOBILE"
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "Enter a valid Nigerian mobile number, e.g. 0803 123 4567 or +2348031234567.",
+      });
+      return z.NEVER;
+    }
+    return String(number.number);
+  });
 export const password = z
   .string()
   .min(12, "Use at least 12 characters.")

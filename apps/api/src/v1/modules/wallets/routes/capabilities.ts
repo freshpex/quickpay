@@ -1,12 +1,14 @@
 import { identity } from "../../../../shared/auth";
 import { json } from "../../../../shared/infrastructure/http";
-import { env } from "../../../../shared/infrastructure/env";
-import { paystackConfigured } from "../../deposits/providers/paystack";
+import {
+  paystackConfigured,
+  withdrawalsConfigured,
+} from "../../deposits/providers/paystack";
 import { walletLimits } from "../domain/limits";
 export async function walletCapabilities(req: Request) {
   await identity(req);
   const deposit = paystackConfigured();
-  const withdrawal = deposit && env().PAYSTACK_TRANSFERS_ENABLED === "true";
+  const withdrawal = withdrawalsConfigured();
   return json({
     currency: "NGN",
     deposit: {

@@ -2,13 +2,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Printer, RefreshCw, ExternalLink } from "lucide-react";
+import { ArrowLeft, RefreshCw, ExternalLink } from "lucide-react";
 import { api, mutation } from "@quickpay/api-client";
 import { formatMoney, type Transaction } from "@quickpay/contracts";
 import { useApi } from "../../lib/use-api";
 import { StatusBadge } from "../../components/ui/status-badge";
 import { Button } from "../../components/ui/button";
 import { LoadingState, ErrorState } from "../../components/feedback";
+import { ReceiptMenu } from "./ReceiptMenu";
 export function TransactionDetails({ id }: { id: string }) {
   const { data, error, loading, refresh } = useApi<{
     transaction: Transaction;
@@ -19,8 +20,8 @@ export function TransactionDetails({ id }: { id: string }) {
     if (!t || !["processing", "awaiting_authorization"].includes(t.status))
       return;
     const timer = setInterval(() => {
-      void refresh();
-    }, 5000);
+      if (document.visibilityState === "visible") void refresh();
+    }, 30000);
     return () => clearInterval(timer);
   }, [t?.status, refresh]);
   async function check() {
@@ -39,7 +40,7 @@ export function TransactionDetails({ id }: { id: string }) {
     }
   }
   if (loading) return <LoadingState />;
-  if (error) return <ErrorState message={error} retry={refresh} />;
+  if (error && !data) return <ErrorState message={error} retry={refresh} />;
   if (!t) return null;
   const success = t.status === "successful";
   return (
@@ -56,7 +57,10 @@ export function TransactionDetails({ id }: { id: string }) {
           <h1 className="text-2xl font-bold">
             {success ? "Payment receipt" : "Payment details"}
           </h1>
-          <StatusBadge status={t.status} />
+          <div className="ml-auto flex items-center gap-3">
+            <StatusBadge status={t.status} />
+            <ReceiptMenu id={t.id} />
+          </div>
         </div>
         <p className="my-8 text-4xl font-bold tracking-tight">
           {formatMoney(t.amount)}
@@ -130,12 +134,9 @@ export function TransactionDetails({ id }: { id: string }) {
               Open secure checkout <ExternalLink size={17} />
             </a>
           )}
-          {success ? (
-            <Button onClick={() => window.print()}>
-              <Printer size={17} />
-              Print receipt
-            </Button>
-          ) : (
+          {["created", "processing", "awaiting_authorization"].includes(
+            t.status,
+          ) && (
             <Button disabled={busy} onClick={check}>
               <RefreshCw size={17} />
               {busy ? "Checking…" : "Check your payment"}

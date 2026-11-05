@@ -5,6 +5,13 @@ import { assert } from "../../../../shared/errors";
 export function paystackConfigured() {
   return env().PAYMENT_MODE !== "disabled" && !!env().PAYSTACK_SECRET_KEY;
 }
+export function withdrawalsConfigured() {
+  return (
+    paystackConfigured() &&
+    (env().PAYMENT_MODE === "sandbox" ||
+      env().PAYSTACK_TRANSFERS_ENABLED === "true")
+  );
+}
 export async function paystack<T extends z.ZodType>(
   path: string,
   schema: T,
@@ -25,6 +32,21 @@ export async function paystack<T extends z.ZodType>(
     body: payload ? JSON.stringify(payload) : undefined,
     signal: AbortSignal.timeout(20000),
   });
+  if (
+    !r.ok &&
+    r.status >= 400 &&
+    r.status < 500 &&
+    ![408, 409, 425, 429].includes(r.status)
+  ) {
+    assert(
+      false,
+      "PROVIDER_REJECTED",
+      path.startsWith("bank/resolve")
+        ? "The bank could not verify this account. Check the account number and bank."
+        : "The payment provider could not accept this request. Please contact support if it continues.",
+      422,
+    );
+  }
   assert(
     r.ok,
     "PAYMENT_PENDING",

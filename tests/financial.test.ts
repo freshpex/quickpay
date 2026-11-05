@@ -529,7 +529,7 @@ describe("native client extensions", () => {
 });
 describe("exact money and request contracts", () => {
   it("normalizes Nigerian phones and preserves exact kobo", () => {
-    expect(phone.parse("0801 234 5678")).toBe("+2348012345678");
+    expect(phone.parse("0803 123 4567")).toBe("+2348031234567");
     expect(parseNaira("99999999.99")).toBe("9999999999");
     expect(() => parseNaira("1.001")).toThrow();
   });
@@ -537,7 +537,7 @@ describe("exact money and request contracts", () => {
     const base = {
       name: "Test User",
       email: "test@example.com",
-      phoneNumber: "08012345678",
+      phoneNumber: "08031234567",
       password: testPassword,
       confirmPassword: "different",
       terms: false,

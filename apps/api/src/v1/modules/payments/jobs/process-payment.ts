@@ -8,10 +8,10 @@ import {
 import { vtpass } from "../../billers/providers/vtpass";
 import { unseal } from "../../../../shared/infrastructure/security";
 import { env } from "../../../../shared/infrastructure/env";
-import { assert } from "../../../../shared/errors";
+import { assert, DomainError } from "../../../../shared/errors";
 import { settlePayment } from "../services/settle-payment";
 import type { PaymentRow } from "../repositories/payment.repository";
-import { parseNaira } from "@quickpay/contracts";
+import { phone, parseNaira } from "@quickpay/contracts";
 export async function verifyPayment(p: PaymentRow) {
   if (p.kind === "deposit") {
     const data = await paystack(
@@ -75,8 +75,17 @@ export async function verifyPayment(p: PaymentRow) {
     );
     const destination =
       content.transactions.unique_element || content.transactions.phone;
+    const storedPhone = ["airtime", "data"].includes(String(p.details.category))
+      ? phone.safeParse(p.details.beneficiary)
+      : null;
+    const providerPhone = storedPhone?.success
+      ? phone.safeParse(destination)
+      : null;
     assert(
-      destination === p.details.beneficiary,
+      destination === p.details.beneficiary ||
+        (storedPhone?.success &&
+          providerPhone?.success &&
+          storedPhone.data === providerPhone.data),
       "DESTINATION_MISMATCH",
       "This payment needs a further check.",
       409,
@@ -172,21 +181,34 @@ export async function processPayment(id: string) {
       ],
     );
     if (!claimed.rowCount) return;
-    await paystack(
-      "transfer",
-      z.object({
-        reference: z.string(),
-        status: z.string(),
-        transfer_code: z.string(),
-      }),
-      {
-        source: "balance",
+    try {
+      await paystack(
+        "transfer",
+        z.object({
+          reference: z.string(),
+          status: z.string(),
+          transfer_code: z.string(),
+        }),
+        {
+          source: "balance",
+          amount: p.amount,
+          recipient: recipient.recipient_code,
+          reason: "Quick Pay wallet withdrawal",
+          reference: p.reference,
+        },
+      );
+    } catch (error) {
+      if (!(error instanceof DomainError) || error.code !== "PROVIDER_REJECTED")
+        throw error;
+      await settlePayment(id, {
+        status: "failed",
         amount: p.amount,
-        recipient: recipient.recipient_code,
-        reason: "Quick Pay wallet withdrawal",
+        currency: p.currency,
         reference: p.reference,
-      },
-    );
+        recipient: recipient.recipient_code,
+      });
+      return;
+    }
   } else if (p.kind === "payment") {
     const claimed = await pool.query(
       "UPDATE transactions SET details=details||'{\"initiationStarted\":true}'::jsonb WHERE id=$1 AND NOT(details ? 'initiationStarted') RETURNING id",

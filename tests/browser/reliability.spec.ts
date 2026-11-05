@@ -49,7 +49,7 @@ test("signup focuses invalid input and shows server field errors beside the corr
   await expect(page.locator("#name")).toHaveAttribute("aria-invalid", "true");
   await page.getByLabel("Full name", { exact: true }).fill("Account Test");
   await page.getByLabel("Email address").fill("account@example.com");
-  await page.getByLabel("Nigerian phone number").fill("08012345678");
+  await page.getByLabel("Nigerian phone number").fill("08031234567");
   await page.locator("#password").fill("StrongPassword123!");
   await page.locator("#confirmPassword").fill("StrongPassword123!");
   await page.getByRole("checkbox").check();

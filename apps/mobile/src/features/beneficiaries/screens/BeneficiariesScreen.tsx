@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { z } from "zod";
-import type { Beneficiary, Service } from "@quickpay/contracts";
+import { phone, type Beneficiary, type Service } from "@quickpay/contracts";
 import { mutation } from "@quickpay/api-client";
 import { api } from "../../../services/api";
 import { useResource } from "../../../services/api/use-resource";
@@ -129,6 +129,8 @@ export function BeneficiariesScreen() {
               const service = catalog.data?.services.find(
                 (s) => s.id === v.serviceId,
               );
+              if (service && ["airtime", "data"].includes(service.category))
+                v.account = phone.parse(v.account);
               await api(
                 "/beneficiaries",
                 mutation({

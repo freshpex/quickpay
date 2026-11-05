@@ -53,9 +53,13 @@ export function BillsScreen() {
   );
   const form = useValidatedForm(
     z.object({
-      beneficiary: z.string().trim().min(3, "Enter the recipient’s details."),
+      beneficiary: ["airtime", "data"].includes(category)
+        ? phone
+        : z.string().trim().min(3, "Enter the recipient’s details."),
       amount: z.string(),
-      phone: z.string(),
+      phone: ["airtime", "data"].includes(category)
+        ? z.union([z.literal(""), phone])
+        : phone,
     }),
     { beneficiary: params.account || "", amount: "", phone: "" },
   );

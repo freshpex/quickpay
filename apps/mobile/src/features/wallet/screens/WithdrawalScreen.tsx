@@ -82,7 +82,7 @@ export function WithdrawalScreen() {
               .filter(
                 (b) =>
                   b.code === bank ||
-                  (search.length > 1 &&
+                  (search.trim().length > 0 &&
                     b.name.toLowerCase().includes(search.toLowerCase())),
               )
               .slice(0, 12)
@@ -99,9 +99,7 @@ export function WithdrawalScreen() {
                 />
               ))
           )}
-          {!bank && (
-            <Notice>Type at least two letters to choose your bank.</Notice>
-          )}
+          {!bank && <Notice>Type a bank name to choose your bank.</Notice>}
           <FormField
             control={form.control}
             name="accountNumber"

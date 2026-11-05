@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AppState, Share, Text } from "react-native";
+import { AppState, Text } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -25,6 +25,7 @@ import {
 } from "../lib/status";
 import { validTransactionId } from "../../../services/deep-links/validate";
 import { loadPending, savePending } from "../services/native-operation";
+import { ReceiptMenu } from "../components/ReceiptMenu";
 export function safeCheckout(value: unknown) {
   try {
     const u = new URL(String(value));
@@ -44,7 +45,7 @@ export function TransactionScreen() {
   const valid = validTransactionId(id);
   const query = useResource<{ transaction: Transaction }>(
     `/payments/${valid ? id : "invalid"}`,
-    { enabled: valid, poll: 8000 },
+    { enabled: valid },
   );
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
@@ -72,22 +73,30 @@ export function TransactionScreen() {
         if (p?.transactionId === t.id) return savePending(null);
       });
   }, [t?.id, t?.status]);
+  useEffect(() => {
+    if (!t || !isPending(t.status)) return;
+    const timer = setInterval(() => {
+      if (AppState.currentState === "active") void query.refetch();
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [t?.id, t?.status, query.refetch]);
   const checkout = safeCheckout(t?.details.checkoutUrl);
   return (
     <Screen
       title="Transaction details."
       onRefresh={() => void query.refetch()}
-      refreshing={query.isRefetching}
+      refreshing={false}
     >
       {!valid ? (
         <Notice danger>This transaction link is invalid.</Notice>
       ) : query.isPending ? (
         <LoadingState />
-      ) : query.error ? (
+      ) : query.error && !query.data ? (
         <ErrorState error={query.error} retry={() => void query.refetch()} />
       ) : (
         t && (
           <>
+            <ReceiptMenu id={t.id} />
             <Animated.View
               key={t.status}
               entering={FadeIn.duration(180)}
@@ -166,15 +175,6 @@ export function TransactionScreen() {
               />
             )}
             {message && <Notice>{message}</Notice>}
-            <Button
-              title="Share receipt"
-              secondary
-              onPress={() => {
-                void Share.share({
-                  message: `Quick Pay receipt\n${statusLabels[t.status]}\n${formatMoney(t.amount)}\nFee: ${formatMoney(t.fee)}\nReference: ${t.reference}\n${localDate(t.createdAt)} (Africa/Lagos)`,
-                }).catch((e) => setMessage(e.message));
-              }}
-            />
             <Button
               title="Get help with this transaction"
               secondary

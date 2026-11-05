@@ -13,6 +13,7 @@ import {
 import { api, mutation } from "@quickpay/api-client";
 import {
   categories,
+  phone,
   parseNaira,
   formatMoney,
   type Service,
@@ -116,6 +117,14 @@ export function BillsPage({
     setError("");
     setBusy(true);
     try {
+      if (["airtime", "data"].includes(service.category)) {
+        const parsed = phone.safeParse(data.beneficiary);
+        if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+      }
+      if (data.phone) {
+        const parsed = phone.safeParse(data.phone);
+        if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+      }
       if (step === 1) {
         parseNaira(data.amount);
         if (service.requiresValidation) {
@@ -149,7 +158,9 @@ export function BillsPage({
             key,
           ),
         );
-        router.push(`/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`);
+        router.push(
+          `/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`,
+        );
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
@@ -335,6 +346,11 @@ export function BillsPage({
                         : category === "television"
                           ? "Smartcard number"
                           : "Account or phone number"
+                  }
+                  type={
+                    ["airtime", "data"].includes(service?.category || "")
+                      ? "tel"
+                      : "text"
                   }
                   id="beneficiary"
                   value={data.beneficiary}

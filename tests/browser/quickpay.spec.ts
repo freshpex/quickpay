@@ -77,7 +77,7 @@ const transaction = {
   reference: "browser-illustration",
   createdAt: new Date().toISOString(),
   serviceId: "mtn",
-  details: { beneficiary: "08012345678" },
+  details: { beneficiary: "08031234567" },
 };
 // UI fixtures exist only in the browser test harness, never in the runtime adapters.
 async function fixture(
@@ -285,7 +285,7 @@ test("signup password buttons, confirmation and unchecked terms validate", async
   await expect(page.getByRole("checkbox")).not.toBeChecked();
   await page.getByLabel("Full name", { exact: true }).fill("Browser Test");
   await page.getByLabel("Email address").fill("browser@example.com");
-  await page.getByLabel("Nigerian phone number").fill("08012345678");
+  await page.getByLabel("Nigerian phone number").fill("08031234567");
   await page.locator("#password").fill("StrongPassword123!");
   await page.locator("#confirmPassword").fill("DifferentPassword123!");
   await page
@@ -352,7 +352,7 @@ test("bill wizard reviews beneficiary, fee and total then shows pending state", 
   });
   await page.goto("/airtime");
   await page.getByRole("button", { name: /MTN airtime/ }).click();
-  await page.getByLabel("Nigerian phone number").fill("08012345678");
+  await page.getByLabel("Nigerian phone number").fill("08031234567");
   await page.getByLabel("Amount (₦)").fill("1000");
   await page.getByRole("button", { name: "Review payment" }).click();
   await expect(page.getByText("₦1,000.00").first()).toBeVisible();
@@ -370,7 +370,12 @@ test("withdrawal validates bank details before authorization and reservation", a
   let submitted: Record<string, unknown> | undefined;
   await fixture(page, (path, method, body) => {
     if (path === "/banks")
-      return { banks: [{ name: "Browser test bank", code: "999" }] };
+      return {
+        banks: [
+          { name: "Browser test bank", code: "999" },
+          { name: "Another bank", code: "888" },
+        ],
+      };
     if (path === "/banks/resolve")
       return {
         id: "22222222-2222-4222-8222-222222222222",
@@ -382,6 +387,10 @@ test("withdrawal validates bank details before authorization and reservation", a
     }
   });
   await page.goto("/withdraw");
+  await page.getByLabel("Search banks").fill("Browser");
+  await expect(page.getByRole("option", { name: "Another bank" })).toHaveCount(
+    0,
+  );
   await page.getByLabel("Bank", { exact: true }).selectOption("999");
   await page.getByLabel("Account number").fill("1234567890");
   await page.getByLabel("Amount (₦)").fill("1000");
@@ -456,4 +465,46 @@ test("unauthenticated API and unavailable provider operations fail closed", asyn
     data: { event: "charge.success" },
   });
   expect(webhook.status()).toBe(401);
+});
+
+test("transaction status refreshes quietly after thirty seconds and receipts download as files", async ({
+  page,
+}) => {
+  await page.clock.install();
+  let completed = false;
+  await fixture(page, (path) =>
+    path === `/payments/${transaction.id}`
+      ? {
+          transaction: {
+            ...transaction,
+            status: completed ? "successful" : "processing",
+          },
+        }
+      : undefined,
+  );
+  await page.route("**/receipt?format=pdf", (route) =>
+    route.fulfill({
+      contentType: "application/pdf",
+      body: Buffer.from("%PDF-1.7\nReceipt fixture"),
+    }),
+  );
+  await page.goto(`/transactions/detail?id=${transaction.id}`);
+  await expect(
+    page.getByText(transaction.reference, { exact: true }),
+  ).toBeVisible();
+  const original = await page
+    .getByText(transaction.reference, { exact: true })
+    .elementHandle();
+  completed = true;
+  await page.clock.runFor(30000);
+  await expect(page.getByText("successful", { exact: true })).toBeVisible();
+  expect(await original!.evaluate((node) => node.isConnected)).toBe(true);
+  await page.getByRole("button", { name: "Receipt options" }).click();
+  const download = page.waitForEvent("download");
+  await page
+    .getByRole("menuitem", { name: "Download PDF", exact: true })
+    .click();
+  expect((await download).suggestedFilename()).toBe(
+    `QuickPay-receipt-${transaction.id}.pdf`,
+  );
 });

@@ -21,8 +21,10 @@ import {
   vtReference,
   variationSchema,
 } from "../../billers/providers/vtpass";
-import { paystackConfigured } from "../../deposits/providers/paystack";
-import { env } from "../../../../shared/infrastructure/env";
+import {
+  paystackConfigured,
+  withdrawalsConfigured,
+} from "../../deposits/providers/paystack";
 import { parseNaira, phone } from "@quickpay/contracts";
 import { walletLimits } from "../../wallets/domain/limits";
 export async function createOperation(
@@ -125,6 +127,13 @@ export async function createOperation(
       const normalized = phone.parse(v.beneficiary);
       v.beneficiary = `0${normalized.slice(4)}`;
     }
+    if (!["airtime", "data"].includes(service.category))
+      assert(
+        v.phone,
+        "PHONE_REQUIRED",
+        "Enter a valid contact phone number.",
+        422,
+      );
     Object.assign(details, {
       beneficiary: v.beneficiary,
       phone: v.phone ? `0${v.phone.slice(4)}` : undefined,
@@ -184,7 +193,7 @@ export async function createOperation(
   }
   if (v.kind === "withdrawal") {
     assert(
-      paystackConfigured() && env().PAYSTACK_TRANSFERS_ENABLED === "true",
+      withdrawalsConfigured(),
       "WITHDRAWAL_UNAVAILABLE",
       "Bank withdrawals are not available yet.",
       503,

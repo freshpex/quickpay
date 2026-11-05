@@ -19,7 +19,7 @@ test("real HTTP account lifecycle and customer pages", async ({
   expect(dbUrl.pathname).toMatch(/_test$/);
   const db = new pg.Pool({ connectionString: dbUrl.toString() });
   const email = `http-${crypto.randomUUID()}@quickpay.test`;
-  const phone = `080${String(Math.floor(Math.random() * 100000000)).padStart(8, "0")}`;
+  const phone = `0803${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`;
   const password = "BrowserStrongPassword123!";
   const pageErrors: string[] = [];
   const serverErrors: string[] = [];

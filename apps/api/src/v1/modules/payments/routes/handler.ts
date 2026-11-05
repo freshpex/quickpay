@@ -20,9 +20,19 @@ export async function listPayments(req: Request) {
 }
 export async function getPayment(req: Request, id: string) {
   const s = await identity(req);
-  return json({
-    transaction: publicTransaction(await ownPayment(id, s.user.id)),
-  });
+  const payment = await ownPayment(id, s.user.id);
+  if (
+    ["processing", "awaiting_authorization"].includes(payment.status) &&
+    (payment.kind === "deposit" || payment.details.initiationStarted)
+  ) {
+    await enqueue(
+      pool,
+      "verify-provider",
+      { reference: payment.reference },
+      `status:${payment.id}:${Math.floor(Date.now() / 30000)}`,
+    );
+  }
+  return json({ transaction: publicTransaction(payment) });
 }
 export async function checkPayment(req: Request, id: string) {
   const s = await identity(req);

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { api, mutation } from "@quickpay/api-client";
-import type { Service } from "@quickpay/contracts";
+import { phone, type Service } from "@quickpay/contracts";
 import { useApi } from "../../lib/use-api";
 import { Field } from "../../components/ui/form-field";
 import { inputClass } from "../../components/ui/password-input";
@@ -30,6 +30,18 @@ export function BeneficiariesPage() {
       v = Object.fromEntries(new FormData(form));
     setBusy(true);
     try {
+      if (
+        v.kind === "phone" ||
+        ["airtime", "data"].includes(
+          catalog.data?.services.find((s) => s.id === v.serviceId)?.category ||
+            "",
+        )
+      ) {
+        const parsed = phone.safeParse(v.account);
+        if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+        v.account = parsed.data;
+        v.kind = "phone";
+      }
       await api(
         "/beneficiaries",
         mutation({

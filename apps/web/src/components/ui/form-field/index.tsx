@@ -1,3 +1,5 @@
+"use client";
+import { phone } from "@quickpay/contracts";
 import type { InputHTMLAttributes } from "react";
 import { inputClass } from "../password-input";
 export function Field({
@@ -18,6 +20,17 @@ export function Field({
       <input
         {...props}
         id={id}
+        onInput={(e) => {
+          if (props.type === "tel" || props.inputMode === "tel") {
+            const input = e.currentTarget;
+            input.setCustomValidity(
+              input.value && !phone.safeParse(input.value).success
+                ? "Enter a valid Nigerian mobile number."
+                : "",
+            );
+          }
+          props.onInput?.(e);
+        }}
         className={inputClass}
         aria-invalid={!!error}
         aria-describedby={
