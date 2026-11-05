@@ -31,7 +31,8 @@
     "admin:grant": "tsx scripts/grant-local-admin.ts",
     "admin:bootstrap": "tsx scripts/provision-admin.ts",
     "worker:start": "tsx apps/worker/src/index.ts",
-    "start": "pnpm --parallel --filter @quickpay/web --filter @quickpay/api start"
+    "start": "pnpm --parallel --filter @quickpay/web --filter @quickpay/api start",
+    "admin:verify-email": "tsx scripts/verify-admin-email.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

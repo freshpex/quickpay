@@ -15,6 +15,9 @@ for (const name of (await readdir(folder))
         .rowCount
     )
       return;
+    await c.query("SELECT set_config('quickpay.payment_mode',$1,true)", [
+      process.env.PAYMENT_MODE || "disabled",
+    ]);
     await c.query(await readFile(`${folder}/${name}`, "utf8"));
     await c.query("INSERT INTO schema_migrations(name) VALUES($1)", [name]);
     console.log(`Applied ${name}`);

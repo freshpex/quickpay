@@ -36,7 +36,7 @@ export async function bootstrapAdmin(input: unknown) {
         "Initial admin provisioning requires no existing admin or matching account. Existing credentials were not changed.",
       );
     await c.query(
-      "INSERT INTO users(id,name,email,email_verified,phone_number,phone_verified,policy_version,policy_accepted_at,referral_code,role,permissions) VALUES($1,'Quick Pay Administrator',$2,false,$3,false,$4,now(),$5,'admin',$6)",
+      "INSERT INTO users(id,name,email,email_verified,phone_number,phone_verified,policy_version,policy_accepted_at,referral_code,role,permissions) VALUES($1,'Quick Pay Administrator',$2,true,$3,false,$4,now(),$5,'admin',$6)",
       [
         id,
         value.email,
@@ -54,7 +54,7 @@ export async function bootstrapAdmin(input: unknown) {
     await audit(c, id, "admin.initial_provisioned", id, null, {
       role: "admin",
       permissions: adminPermissions,
-      emailVerified: false,
+      emailVerified: true,
       mfaRequired: true,
       source: "operator-request",
     });
