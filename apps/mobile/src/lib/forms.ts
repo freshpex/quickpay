@@ -37,7 +37,12 @@ export function useValidatedForm<T extends FieldValues>(
             ),
           );
         form.setError("root", {
-          message: error instanceof Error ? error.message : "Please try again.",
+          message:
+            error instanceof z.ZodError
+              ? error.issues[0].message
+              : error instanceof Error
+                ? error.message
+                : "Please try again.",
         });
       }
     });

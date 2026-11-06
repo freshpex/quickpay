@@ -11,6 +11,24 @@ export {
   ConnectionUnavailable,
   type ConnectionSnapshot,
 } from "./connection";
+const serviceMessages: Record<string, string> = {
+  BANK_LOOKUP_UNAVAILABLE:
+    "Account verification is temporarily unavailable. Please try again shortly. No transfer has been made.",
+  BANK_LIST_UNAVAILABLE:
+    "We could not load the banks. Please try again shortly.",
+  PAYMENT_PENDING:
+    "The payment provider has not confirmed this request yet. Check its status before trying again.",
+  PROVIDER_PENDING:
+    "The payment provider has not confirmed this request yet. Check its status before trying again.",
+  WITHDRAWAL_UNAVAILABLE:
+    "Bank withdrawals are not enabled. Please contact support.",
+  DEPOSIT_UNAVAILABLE:
+    "Adding money is currently unavailable. Please try again later.",
+  SERVICE_UNAVAILABLE:
+    "This service is currently unavailable. Please choose another service.",
+  PAYMENTS_UNAVAILABLE:
+    "The payment provider is currently unavailable. Please try again later.",
+};
 const authMessages: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD:
     "Your email or password is incorrect. Please try again.",
@@ -112,7 +130,8 @@ async function request<T>(
       code,
       message:
         r.status >= 500
-          ? "We could not complete this request. Please try again shortly."
+          ? serviceMessages[code] ||
+            "We could not complete this request. Please try again shortly."
           : r.status === 429
             ? "Too many attempts. Please wait a minute and try again."
             : authMessages[code] ||

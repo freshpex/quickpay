@@ -53,9 +53,13 @@ export function BillsScreen() {
   );
   const form = useValidatedForm(
     z.object({
-      beneficiary: z.string().trim().min(3, "Enter the recipient’s details."),
+      beneficiary: ["airtime", "data"].includes(category)
+        ? phone
+        : z.string().trim().min(3, "Enter the recipient’s details."),
       amount: z.string(),
-      phone: z.string(),
+      phone: ["airtime", "data"].includes(category)
+        ? z.union([z.literal(""), phone])
+        : phone,
     }),
     { beneficiary: params.account || "", amount: "", phone: "" },
   );
@@ -256,7 +260,7 @@ export function BillsScreen() {
               fee={service.fee}
               recipient={review.recipient}
               onClose={() => setReview(null)}
-              onConfirm={async (password) => {
+              onConfirm={async (pin) => {
                 if (review.expires < Date.now())
                   throw new Error("Check the recipient again before paying.");
                 const v = form.getValues();
@@ -273,7 +277,7 @@ export function BillsScreen() {
                       ? { validationId: review.validationId }
                       : {}),
                   },
-                  password,
+                  pin,
                 );
                 form.reset();
                 router.replace(`/(customer)/transactions/${t.id}`);

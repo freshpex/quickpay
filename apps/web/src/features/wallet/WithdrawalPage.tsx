@@ -1,10 +1,11 @@
 "use client";
+import { TransactionPinField } from "../security/TransactionPinField";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, mutation } from "@quickpay/api-client";
 import { formatMoney, parseNaira, type Transaction } from "@quickpay/contracts";
 import { Field } from "../../components/ui/form-field";
-import { PasswordInput, inputClass } from "../../components/ui/password-input";
+import { BankSelect } from "./BankSelect";
 import { Button } from "../../components/ui/button";
 import { ErrorState } from "../../components/feedback";
 import { useApi } from "../../lib/use-api";
@@ -18,6 +19,7 @@ export function WithdrawalPage() {
     }),
     [validation, setValidation] = useState<{ id: string; name: string }>(),
     [review, setReview] = useState(false),
+    [pinReady, setPinReady] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [key] = useState(() => crypto.randomUUID());
@@ -30,6 +32,11 @@ export function WithdrawalPage() {
     setBusy(true);
     setError("");
     try {
+      if (!data.bankCode)
+        throw new Error("Choose a bank before checking the account.");
+      const amount = BigInt(parseNaira(data.amount));
+      if (amount < 10000n || amount > 100000000n)
+        throw new Error("Withdraw between ₦100 and ₦1,000,000.");
       const v = await api<{ id: string; name: string }>(
         "/banks/resolve",
         mutation({
@@ -37,7 +44,6 @@ export function WithdrawalPage() {
           accountNumber: data.accountNumber,
         }),
       );
-      parseNaira(data.amount);
       setValidation(v);
       setReview(true);
     } catch (e) {
@@ -62,12 +68,14 @@ export function WithdrawalPage() {
             ...data,
             amount: parseNaira(data.amount),
             validationId: validation?.id,
-            password: new FormData(e.currentTarget).get("password"),
+            pin: new FormData(e.currentTarget).get("pin"),
           },
           key,
         ),
       );
-      router.push(`/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`);
+      router.push(
+        `/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
     } finally {
@@ -83,33 +91,19 @@ export function WithdrawalPage() {
         Check the account name before you confirm. Money is reserved while your
         transfer is being processed.
       </p>
-      {banks.error && <ErrorState message={banks.error} />}
+      {banks.error && (
+        <ErrorState message={banks.error} retry={banks.refresh} />
+      )}
       <form
         onSubmit={submit}
         className="mt-5 space-y-6 rounded-2xl border border-ink/10 bg-white p-6"
       >
-        <div>
-          <label
-            htmlFor="bankCode"
-            className="mb-2 block text-sm font-semibold"
-          >
-            Bank
-          </label>
-          <select
-            id="bankCode"
-            value={data.bankCode}
-            onChange={(e) => change("bankCode", e.target.value)}
-            required
-            className={inputClass}
-          >
-            <option value="">Choose a bank</option>
-            {banks.data?.banks.map((b) => (
-              <option key={b.code} value={b.code}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <BankSelect
+          banks={banks.data?.banks || []}
+          value={data.bankCode}
+          onChange={(value) => change("bankCode", value)}
+          disabled={busy || !banks.data?.banks.length}
+        />
         <Field
           label="Account number"
           id="accountNumber"
@@ -117,6 +111,7 @@ export function WithdrawalPage() {
           onChange={(e) => change("accountNumber", e.target.value)}
           inputMode="numeric"
           pattern="[0-9]{10}"
+          maxLength={10}
           required
         />
         <Field
@@ -149,17 +144,14 @@ export function WithdrawalPage() {
                 </div>
               </dl>
             </div>
-            <PasswordInput
-              label="Confirm with your password"
-              id="password"
-              name="password"
-              autoComplete="current-password"
-              required
-            />
+            <TransactionPinField onReady={setPinReady} />
           </>
         )}
         {error && <ErrorState message={error} />}
-        <Button disabled={busy || !banks.data?.banks.length} className="w-full">
+        <Button
+          disabled={busy || !banks.data?.banks.length || (review && !pinReady)}
+          className="w-full"
+        >
           {busy
             ? "Please wait…"
             : review

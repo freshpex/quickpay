@@ -76,15 +76,21 @@ it("enables configured sandbox providers and keeps VTpass on the matching enviro
   vi.stubEnv("VTPASS_PUBLIC_KEY", "sandbox-fixture");
   vi.stubEnv("VTPASS_ENV", "sandbox");
   const { env } = await import("../apps/api/src/shared/infrastructure/env");
-  const { paystackConfigured } =
+  const { paystackConfigured, withdrawalsConfigured } =
     await import("../apps/api/src/v1/modules/deposits/providers/paystack");
   const { vtpassConfigured } =
     await import("../apps/api/src/v1/modules/billers/providers/vtpass");
   expect(paystackConfigured()).toBe(true);
   expect(vtpassConfigured()).toBe(true);
+  expect(withdrawalsConfigured()).toBe(true);
   env().VTPASS_ENV = "live";
   expect(vtpassConfigured()).toBe(false);
   expect(paystackConfigured()).toBe(true);
+  env().PAYMENT_MODE = "live";
+  env().PAYSTACK_TRANSFERS_ENABLED = "false";
+  expect(withdrawalsConfigured()).toBe(false);
+  env().PAYSTACK_TRANSFERS_ENABLED = "true";
+  expect(withdrawalsConfigured()).toBe(true);
   env().PAYMENT_MODE = "disabled";
   expect(paystackConfigured()).toBe(false);
   expect(vtpassConfigured()).toBe(false);

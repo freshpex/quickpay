@@ -10,10 +10,7 @@ export type PendingOperation = {
 type IO = {
   load: () => Promise<PendingOperation | null>;
   save: (operation: PendingOperation | null) => Promise<void>;
-  send: (
-    operation: PendingOperation,
-    password?: string,
-  ) => Promise<Transaction>;
+  send: (operation: PendingOperation, pin?: string) => Promise<Transaction>;
   recover: (key: string) => Promise<Transaction | null>;
   online: () => boolean;
   uuid: () => string;
@@ -25,7 +22,7 @@ export class OperationCoordinator {
     userId: string,
     kind: PendingOperation["kind"],
     body: Record<string, unknown>,
-    password?: string,
+    pin?: string,
   ) {
     if (this.busy) throw new Error("Your payment is already being submitted.");
     if (!this.io.online())
@@ -39,7 +36,7 @@ export class OperationCoordinator {
         throw new Error(
           "Resolve your previous payment in Activity before starting another.",
         );
-      // Passwords never enter storage; exact request and key survive interruption.
+      // Authorization secrets never enter storage; exact request and key survive interruption.
       const clean = Object.fromEntries(
         Object.entries(body).filter(
           ([key]) => !["password", "token", "pin"].includes(key),
@@ -53,12 +50,12 @@ export class OperationCoordinator {
         createdAt: new Date().toISOString(),
       };
       await this.io.save(pending);
-      return await this.send(pending, password);
+      return await this.send(pending, pin);
     } finally {
       this.busy = false;
     }
   }
-  async retry(userId: string, password?: string) {
+  async retry(userId: string, pin?: string) {
     if (this.busy) throw new Error("Your payment is already being checked.");
     if (!this.io.online()) throw new Error("Reconnect to check this payment.");
     this.busy = true;
@@ -71,14 +68,14 @@ export class OperationCoordinator {
         await this.io.save({ ...pending, transactionId: existing.id });
         return existing;
       }
-      return await this.send(pending, password);
+      return await this.send(pending, pin);
     } finally {
       this.busy = false;
     }
   }
-  private async send(pending: PendingOperation, password?: string) {
+  private async send(pending: PendingOperation, pin?: string) {
     try {
-      const t = await this.io.send(pending, password);
+      const t = await this.io.send(pending, pin);
       await this.io.save({ ...pending, transactionId: t.id });
       return t;
     } catch (e) {

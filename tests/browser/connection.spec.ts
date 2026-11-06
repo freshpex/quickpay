@@ -60,7 +60,7 @@ test("signup on a small phone keeps the form while connecting and continues afte
   await page.goto("/sign-up");
   await page.getByLabel("Full name", { exact: true }).fill("Connection Test");
   await page.getByLabel("Email address").fill("connection@example.com");
-  await page.getByLabel("Nigerian phone number").fill("08012345678");
+  await page.getByLabel("Nigerian phone number").fill("08031234567");
   await page.locator("#password").fill("LongPassword123!");
   await page.locator("#confirmPassword").fill("LongPassword123!");
   await page.getByRole("checkbox").check();

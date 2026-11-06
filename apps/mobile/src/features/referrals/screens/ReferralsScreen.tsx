@@ -11,7 +11,7 @@ import { siteUrl } from "../../../lib/config";
 import { Screen } from "../../../components/layout/screen";
 import { Button } from "../../../components/ui/button";
 import { Card, Row } from "../../../components/ui/card/Card";
-import { PasswordInput } from "../../../components/ui/password-input";
+import { TransactionPinInput } from "../../security/components/TransactionPinInput";
 import { Sheet } from "../../../components/ui/bottom-sheet/Sheet";
 import {
   Notice,
@@ -26,7 +26,7 @@ export function ReferralsScreen() {
   const referrals = useResource<Referrals>("/referrals"),
     rule = useResource<{ summary: string }>("/rewards/active-rule");
   const [claim, setClaim] = useState<string | null>(null),
-    [password, setPassword] = useState(""),
+    [pin, setPin] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   return (
@@ -118,27 +118,22 @@ export function ReferralsScreen() {
         onClose={() => {
           if (!busy) {
             setClaim(null);
-            setPassword("");
+            setPin("");
           }
         }}
       >
         <Text className="text-2xl font-bold text-ink">Claim your reward.</Text>
-        <PasswordInput
-          label="Account password"
-          value={password}
-          onChangeText={setPassword}
-          autoComplete="current-password"
-        />
+        <TransactionPinInput value={pin} onChange={setPin} />
         <Button
           title="Confirm reward claim"
           busy={busy}
-          disabled={!password}
+          disabled={!pin}
           onPress={() => {
             if (!claim || busy) return;
             setBusy(true);
             void api<{ message: string }>(
               `/rewards/${claim}/claim`,
-              mutation({ password }),
+              mutation({ pin: pin }),
             )
               .then(async (r) => {
                 setMessage(r.message);
@@ -150,7 +145,7 @@ export function ReferralsScreen() {
               })
               .catch((e) => setMessage(e.message))
               .finally(() => {
-                setPassword("");
+                setPin("");
                 setBusy(false);
               });
           }}

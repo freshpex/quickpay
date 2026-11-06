@@ -4,6 +4,8 @@ const config = vi.hoisted(() => ({
   MAILJET_SECRET_KEY: "test-secret-key",
   MAILJET_FROM_EMAIL: "sender@example.com",
   MAILJET_FROM_NAME: "Quick Pay",
+  WEB_ORIGIN: "https://example.com",
+  DATA_ENCRYPTION_KEY: "a".repeat(64),
 }));
 vi.mock("../apps/api/src/shared/infrastructure/env", () => ({
   env: () => config,
@@ -41,12 +43,20 @@ describe("Mailjet email delivery", () => {
     expect(init?.signal).toBeDefined();
     expect(JSON.parse(String(init?.body))).toEqual({
       Messages: [
-        {
+        expect.objectContaining({
           From: { Email: "sender@example.com", Name: "Quick Pay" },
           To: [{ Email: job.to }],
           Subject: job.subject,
           TextPart: job.text,
-        },
+          HTMLPart: expect.stringContaining("cid:quickpay-logo"),
+          InlinedAttachments: [
+            expect.objectContaining({
+              ContentID: "quickpay-logo",
+              ContentType: "image/png",
+              Base64Content: expect.any(String),
+            }),
+          ],
+        }),
       ],
     });
   });
@@ -77,5 +87,50 @@ describe("Mailjet email delivery", () => {
   it("propagates timeouts and network failures for the existing retry mechanism", async () => {
     fetchMock.mockRejectedValue(new Error("Network timeout"));
     await expect(sendEmail(job)).rejects.toThrow("Network timeout");
+  });
+});
+
+describe("branded email security", () => {
+  it("escapes message content and permits action buttons only for the app origin", async () => {
+    const { emailTemplate } =
+      await import("../apps/api/src/shared/infrastructure/email/template");
+    const html = emailTemplate({
+      subject: '<script>alert("unsafe")</script>',
+      text: "<img src=x onerror=alert(1)> https://attacker.example/verify",
+      siteUrl: "https://example.com",
+    });
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).not.toContain('href="https://attacker.example');
+    const valid = emailTemplate({
+      subject: "Verify",
+      text: "Continue https://example.com/verify?token=a&next=b",
+      siteUrl: "https://example.com",
+    });
+    expect(valid).toContain(
+      'href="https://example.com/verify?token=a&amp;next=b"',
+    );
+  });
+  it("decrypts a reset OTP only when preparing the Mailjet message", async () => {
+    const { seal } =
+      await import("../apps/api/src/shared/infrastructure/security");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ Messages: [{ Status: "success" }] })),
+    );
+    const otpEncrypted = seal("572904");
+    expect(otpEncrypted).not.toContain("572904");
+    await sendEmail({
+      ...job,
+      subject: "Reset transaction PIN",
+      text: "Your code is {{code}}.",
+      otpEncrypted,
+    });
+    const message = JSON.parse(String(fetchMock.mock.calls[0][1]?.body))
+      .Messages[0];
+    expect(message.TextPart).toBe("Your code is 572904.");
+    expect(message.HTMLPart).toContain("572904");
+    expect(message.HTMLPart).not.toContain("{{code}}");
+    expect(JSON.stringify(message)).not.toContain(otpEncrypted);
   });
 });

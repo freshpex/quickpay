@@ -1,3 +1,6 @@
+import { formatMoney } from "@quickpay/contracts";
+import { env } from "../../../../shared/infrastructure/env";
+import { queueUserEmail } from "../../../../shared/infrastructure/email/queue";
 import { atomic, enqueue } from "@quickpay/database";
 import { assert } from "../../../../shared/errors";
 import { postJournal, ensureWallet } from "../../ledger/services/post-journal";
@@ -48,7 +51,15 @@ export async function settlePayment(id: string, outcome: VerifiedOutcome) {
         "This transfer needs a further check.",
         409,
       );
-    transition(p.status, outcome.status);
+    // A late charge confirmation can follow a failed checkout attempt. Never downgrade
+    // confirmed deposits when an older failure response arrives out of order.
+    if (
+      p.kind === "deposit" &&
+      p.status === "successful" &&
+      outcome.status === "failed"
+    )
+      return false;
+    transition(p.status, outcome.status, p.kind);
     await ensureWallet(c, p.user_id);
     const amount = BigInt(p.amount),
       fee = BigInt(p.fee),
@@ -150,6 +161,17 @@ export async function settlePayment(id: string, outcome: VerifiedOutcome) {
       ],
     );
     await enqueue(c, "receipt", { id }, `receipt:${id}:${outcome.status}`);
+    await queueUserEmail(
+      c,
+      p.user_id,
+      `Transaction ${outcome.status}`,
+      `Your ${p.kind} of ${formatMoney(p.amount)} is ${outcome.status}.
+Reference: ${p.reference}
+Fee: ${formatMoney(p.fee)}
+Open the app for your receipt and full details:
+${env().WEB_ORIGIN}/transactions/detail?id=${id}`,
+      `transaction-email:${id}:${outcome.status}`,
+    );
     return true;
   });
 }

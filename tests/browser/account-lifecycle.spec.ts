@@ -19,7 +19,7 @@ test("real HTTP account lifecycle and customer pages", async ({
   expect(dbUrl.pathname).toMatch(/_test$/);
   const db = new pg.Pool({ connectionString: dbUrl.toString() });
   const email = `http-${crypto.randomUUID()}@quickpay.test`;
-  const phone = `080${String(Math.floor(Math.random() * 100000000)).padStart(8, "0")}`;
+  const phone = `0803${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`;
   const password = "BrowserStrongPassword123!";
   const pageErrors: string[] = [];
   const serverErrors: string[] = [];
@@ -115,6 +115,35 @@ test("real HTTP account lifecycle and customer pages", async ({
       await expect(
         page.getByText("We could not complete this request.", { exact: false }),
       ).toHaveCount(0);
+      if (path === "/settings") {
+        await page
+          .getByLabel("Current login password", { exact: true })
+          .fill(password);
+        await page
+          .getByLabel("New transaction PIN", { exact: true })
+          .fill("572904");
+        await page
+          .getByLabel("Confirm transaction PIN", { exact: true })
+          .fill("572904");
+        await page
+          .getByRole("button", { name: "Set transaction PIN", exact: true })
+          .click();
+        await expect(
+          page
+            .getByRole("status")
+            .filter({ hasText: "Your transaction PIN is ready." }),
+        ).toBeVisible();
+        expect(
+          await (await page.request.get("/api/v1/security/pin")).json(),
+        ).toMatchObject({ configured: true });
+        const stored = (
+          await db.query(
+            "SELECT p.pin_hash FROM transaction_pins p JOIN users u ON u.id=p.user_id WHERE u.email=$1",
+            [email],
+          )
+        ).rows[0];
+        expect(stored.pin_hash).not.toBe("572904");
+      }
     }
     await page
       .getByLabel("What do you need help with?")

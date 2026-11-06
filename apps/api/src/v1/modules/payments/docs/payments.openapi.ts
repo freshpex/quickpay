@@ -7,29 +7,26 @@ export const financialSchemas = {
   Money: money,
   Deposit: {
     type: "object",
-    required: ["amount"],
-    properties: { amount: money },
+    required: ["amount", "pin"],
+    properties: {
+      amount: money,
+      pin: { type: "string", pattern: "^[0-9]{6}$", writeOnly: true },
+    },
   },
   Withdrawal: {
     type: "object",
-    required: [
-      "amount",
-      "bankCode",
-      "accountNumber",
-      "validationId",
-      "password",
-    ],
+    required: ["amount", "bankCode", "accountNumber", "validationId", "pin"],
     properties: {
       amount: money,
       bankCode: { type: "string" },
       accountNumber: { type: "string", pattern: "^[0-9]{10}$" },
       validationId: { type: "string", format: "uuid" },
-      password: { type: "string", writeOnly: true },
+      pin: { type: "string", pattern: "^[0-9]{6}$", writeOnly: true },
     },
   },
   Payment: {
     type: "object",
-    required: ["amount", "serviceId", "beneficiary", "password"],
+    required: ["amount", "serviceId", "beneficiary", "pin"],
     properties: {
       amount: money,
       serviceId: { type: "string" },
@@ -40,7 +37,7 @@ export const financialSchemas = {
         description: "Nigerian mobile, normalized to +234",
       },
       validationId: { type: "string", format: "uuid" },
-      password: { type: "string", writeOnly: true },
+      pin: { type: "string", pattern: "^[0-9]{6}$", writeOnly: true },
     },
   },
   Transaction: {

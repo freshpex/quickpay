@@ -108,7 +108,7 @@ export function SignUpForm() {
         type="tel"
         inputMode="tel"
         autoComplete="tel"
-        placeholder="0801 234 5678"
+        placeholder="0803 123 4567"
         required
         error={errors.phoneNumber}
       />

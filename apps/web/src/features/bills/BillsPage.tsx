@@ -1,4 +1,5 @@
 "use client";
+import { TransactionPinField } from "../security/TransactionPinField";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +14,7 @@ import {
 import { api, mutation } from "@quickpay/api-client";
 import {
   categories,
+  phone,
   parseNaira,
   formatMoney,
   type Service,
@@ -20,7 +22,7 @@ import {
 } from "@quickpay/contracts";
 import { useApi } from "../../lib/use-api";
 import { Field } from "../../components/ui/form-field";
-import { PasswordInput, inputClass } from "../../components/ui/password-input";
+import { inputClass } from "../../components/ui/password-input";
 import { Button } from "../../components/ui/button";
 import {
   LoadingState,
@@ -69,6 +71,7 @@ export function BillsPage({
     [validation, setValidation] = useState<{ id: string; name: string }>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
+    [pinReady, setPinReady] = useState(false),
     [key, setKey] = useState(() => crypto.randomUUID());
   useEffect(() => {
     if (!initialCategory) {
@@ -116,6 +119,14 @@ export function BillsPage({
     setError("");
     setBusy(true);
     try {
+      if (["airtime", "data"].includes(service.category)) {
+        const parsed = phone.safeParse(data.beneficiary);
+        if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+      }
+      if (data.phone) {
+        const parsed = phone.safeParse(data.phone);
+        if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+      }
       if (step === 1) {
         parseNaira(data.amount);
         if (service.requiresValidation) {
@@ -144,12 +155,14 @@ export function BillsPage({
               ...(data.plan ? { plan: data.plan } : {}),
               ...(data.phone ? { phone: data.phone } : {}),
               validationId: validation?.id,
-              password: new FormData(e.currentTarget).get("password"),
+              pin: new FormData(e.currentTarget).get("pin"),
             },
             key,
           ),
         );
-        router.push(`/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`);
+        router.push(
+          `/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`,
+        );
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
@@ -336,6 +349,11 @@ export function BillsPage({
                           ? "Smartcard number"
                           : "Account or phone number"
                   }
+                  type={
+                    ["airtime", "data"].includes(service?.category || "")
+                      ? "tel"
+                      : "text"
+                  }
                   id="beneficiary"
                   value={data.beneficiary}
                   onChange={(e) =>
@@ -447,13 +465,7 @@ export function BillsPage({
                     </div>
                   ))}
                 </div>
-                <PasswordInput
-                  label="Confirm with your password"
-                  id="password"
-                  name="password"
-                  autoComplete="current-password"
-                  required
-                />
+                <TransactionPinField onReady={setPinReady} />
                 <p className="text-xs leading-relaxed text-ink/50">
                   Check the recipient carefully. Once confirmed, your payment
                   may not be refundable.
@@ -461,7 +473,10 @@ export function BillsPage({
               </>
             )}
             {error && <ErrorState message={error} />}
-            <Button disabled={busy} className="w-full">
+            <Button
+              disabled={busy || (step !== 1 && !pinReady)}
+              className="w-full"
+            >
               {busy
                 ? "Please wait…"
                 : step === 1

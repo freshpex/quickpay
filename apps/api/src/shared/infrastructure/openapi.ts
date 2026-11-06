@@ -78,6 +78,13 @@ export function openapi() {
     properties: Record<string, unknown>,
     required = Object.keys(properties),
   ) => ({ type: "object", properties, required });
+  const withOptional = (
+    requiredProperties: Record<string, unknown>,
+    optionalProperties: Record<string, unknown>,
+  ) => ({
+    ...object(requiredProperties),
+    properties: { ...requiredProperties, ...optionalProperties },
+  });
   const str = { type: "string" };
   add(
     "/wallet/capabilities",
@@ -217,6 +224,42 @@ export function openapi() {
     true,
   );
   add(
+    "/security/pin",
+    "get",
+    "Read transaction PIN setup and lock status",
+    "Security",
+  );
+  add(
+    "/security/pin",
+    "post",
+    "Set or change transaction PIN using current account credentials",
+    "Security",
+    withOptional(
+      {
+        password: { type: "string", writeOnly: true },
+        newPin: { type: "string", pattern: "^[0-9]{6}$", writeOnly: true },
+        confirmPin: { type: "string", writeOnly: true },
+      },
+      { currentPin: { type: "string", writeOnly: true } },
+    ),
+  );
+  add(
+    "/security/pin/reset",
+    "post",
+    "Request or confirm an email OTP transaction PIN reset",
+    "Security",
+    withOptional(
+      {
+        password: { type: "string", writeOnly: true },
+      },
+      {
+        code: { type: "string", writeOnly: true },
+        newPin: { type: "string", writeOnly: true },
+        confirmPin: { type: "string", writeOnly: true },
+      },
+    ),
+  );
+  add(
     "/wallet",
     "get",
     "Read available, reserved, reward and debt buckets",
@@ -339,7 +382,7 @@ export function openapi() {
     "post",
     "Claim an eligible reward once",
     "Rewards",
-    object({ password: { type: "string", writeOnly: true } }),
+    object({ pin: { type: "string", pattern: "^[0-9]{6}$", writeOnly: true } }),
   );
   add(
     "/gift-cards/products",

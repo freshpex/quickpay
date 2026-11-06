@@ -52,7 +52,7 @@ export function SignUpForm() {
         name="phoneNumber"
         label="Phone number"
         keyboardType="phone-pad"
-        placeholder="0801 234 5678"
+        placeholder="0803 123 4567"
         autoComplete="tel"
         textContentType="telephoneNumber"
       />

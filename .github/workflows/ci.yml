@@ -21,6 +21,8 @@ jobs:
       PAYMENT_MODE: disabled
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -29,6 +31,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm security:scan
+        env:
+          SECRET_SCAN_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+      - run: pnpm audit --audit-level=moderate
       - run: pnpm setup:local
       - run: pnpm db:migrate
       - run: pnpm db:seed
@@ -49,11 +55,16 @@ jobs:
           API_ORIGIN: http://localhost:3101
           NEXT_PUBLIC_SITE_URL: http://localhost:3100
       - run: pnpm exec playwright install --with-deps msedge
+      - run: pnpm qa:prepare
+        env:
+          TEST_DATABASE_URL: postgresql://quickpay:local-development-only@localhost:5432/quickpay_e2e_test
       - run: pnpm test:e2e
         env:
           E2E_BASE_URL: http://localhost:3100
           E2E_SERVER_COMMAND: pnpm qa:serve
           E2E_REAL_AUTH: "true"
+          E2E_PROVIDER_FIXTURES: "true"
+          TEST_DATABASE_URL: postgresql://quickpay:local-development-only@localhost:5432/quickpay_e2e_test
       - uses: actions/upload-artifact@v4
         if: always()
         with:

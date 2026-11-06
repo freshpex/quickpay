@@ -138,7 +138,7 @@ describe("native contracts and links", () => {
     const input = {
       name: "Native User",
       email: "person@example.com",
-      phoneNumber: "08012345678",
+      phoneNumber: "08031234567",
       password: "StrongPassword123!",
       confirmPassword: "different",
       terms: false,

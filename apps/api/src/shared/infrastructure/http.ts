@@ -101,6 +101,8 @@ export function endpoint(
             correlationId,
             event: "request_failed",
             type: e instanceof Error ? e.name : "unknown",
+            path: new URL(req.url).pathname,
+            ...(known ? { code: e.code } : {}),
             ...(configuration ? { fields: e.fields } : {}),
           }),
         );

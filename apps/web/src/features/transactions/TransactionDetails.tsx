@@ -2,27 +2,44 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Printer, RefreshCw, ExternalLink } from "lucide-react";
+import { ArrowLeft, RefreshCw, ExternalLink } from "lucide-react";
 import { api, mutation } from "@quickpay/api-client";
-import { formatMoney, type Transaction } from "@quickpay/contracts";
+import {
+  formatMoney,
+  isDepositPreparing,
+  paystackCheckoutUrl,
+  shouldRefreshTransaction,
+  type Transaction,
+} from "@quickpay/contracts";
 import { useApi } from "../../lib/use-api";
 import { StatusBadge } from "../../components/ui/status-badge";
 import { Button } from "../../components/ui/button";
 import { LoadingState, ErrorState } from "../../components/feedback";
+import { ReceiptMenu } from "./ReceiptMenu";
 export function TransactionDetails({ id }: { id: string }) {
   const { data, error, loading, refresh } = useApi<{
     transaction: Transaction;
   }>(`/payments/${id}`);
   const [busy, setBusy] = useState(false);
   const t = data?.transaction;
+  const preparing = t ? isDepositPreparing(t) : false;
   useEffect(() => {
-    if (!t || !["processing", "awaiting_authorization"].includes(t.status))
-      return;
-    const timer = setInterval(() => {
-      void refresh();
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [t?.status, refresh]);
+    if (!t || !shouldRefreshTransaction(t)) return;
+    const focus = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    const timer = setInterval(
+      () => {
+        if (document.visibilityState === "visible") void refresh();
+      },
+      preparing ? 2000 : 30000,
+    );
+    document.addEventListener("visibilitychange", focus);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", focus);
+    };
+  }, [t?.status, preparing, refresh]);
   async function check() {
     setBusy(true);
     try {
@@ -39,9 +56,10 @@ export function TransactionDetails({ id }: { id: string }) {
     }
   }
   if (loading) return <LoadingState />;
-  if (error) return <ErrorState message={error} retry={refresh} />;
+  if (error && !data) return <ErrorState message={error} retry={refresh} />;
   if (!t) return null;
   const success = t.status === "successful";
+  const checkout = paystackCheckoutUrl(t.details.checkoutUrl);
   return (
     <section className="max-w-2xl">
       <Link
@@ -54,9 +72,20 @@ export function TransactionDetails({ id }: { id: string }) {
       <div className="rounded-3xl border border-ink/10 bg-white p-6 md:p-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold">
-            {success ? "Payment receipt" : "Payment details"}
+            {preparing
+              ? "Preparing your checkout"
+              : success
+                ? "Payment receipt"
+                : t.kind === "deposit" &&
+                    checkout &&
+                    ["processing", "awaiting_authorization"].includes(t.status)
+                  ? "Complete your deposit"
+                  : "Payment details"}
           </h1>
-          <StatusBadge status={t.status} />
+          <div className="ml-auto flex items-center gap-3">
+            <StatusBadge status={t.status} />
+            <ReceiptMenu id={t.id} />
+          </div>
         </div>
         <p className="my-8 text-4xl font-bold tracking-tight">
           {formatMoney(t.amount)}
@@ -116,29 +145,37 @@ export function TransactionDetails({ id }: { id: string }) {
             aria-live="polite"
             className="my-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-900"
           >
-            {t.status === "awaiting_authorization"
-              ? "Complete your checkout to add money."
-              : "We are checking your payment. Please check this transaction before trying again."}
+            {preparing
+              ? "We’re preparing your secure Paystack checkout. Your wallet is credited only after you complete payment. Checkout will appear here automatically."
+              : t.kind === "deposit" && checkout
+                ? "Complete your checkout to add money."
+                : "We are checking your payment. Please check this transaction before trying again."}
           </p>
         )}
         <div className="mt-5 flex flex-wrap gap-3">
-          {!!t.details.checkoutUrl && t.status === "awaiting_authorization" && (
-            <a
-              href={String(t.details.checkoutUrl)}
-              className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-white"
-            >
-              Open secure checkout <ExternalLink size={17} />
-            </a>
-          )}
-          {success ? (
-            <Button onClick={() => window.print()}>
-              <Printer size={17} />
-              Print receipt
-            </Button>
-          ) : (
+          {checkout &&
+            t.kind === "deposit" &&
+            ["awaiting_authorization", "processing", "failed"].includes(
+              t.status,
+            ) && (
+              <a
+                href={checkout}
+                className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-white"
+              >
+                {t.status === "failed"
+                  ? "Try secure checkout again"
+                  : "Open secure checkout"}{" "}
+                <ExternalLink size={17} />
+              </a>
+            )}
+          {shouldRefreshTransaction(t) && (
             <Button disabled={busy} onClick={check}>
               <RefreshCw size={17} />
-              {busy ? "Checking…" : "Check your payment"}
+              {busy
+                ? "Please wait…"
+                : preparing
+                  ? "Retry checkout setup"
+                  : "Check your payment"}
             </Button>
           )}
           <Link

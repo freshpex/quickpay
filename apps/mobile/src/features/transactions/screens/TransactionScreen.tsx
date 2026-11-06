@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AppState, Share, Text } from "react-native";
+import { AppState, Text } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { CircleCheck, Clock3, RotateCcw } from "lucide-react-native";
-import { formatMoney, type Transaction } from "@quickpay/contracts";
+import {
+  formatMoney,
+  isDepositPreparing,
+  paystackCheckoutUrl,
+  shouldRefreshTransaction,
+  type Transaction,
+} from "@quickpay/contracts";
 import { mutation } from "@quickpay/api-client";
 import { api } from "../../../services/api";
 import { useResource } from "../../../services/api/use-resource";
@@ -25,30 +31,20 @@ import {
 } from "../lib/status";
 import { validTransactionId } from "../../../services/deep-links/validate";
 import { loadPending, savePending } from "../services/native-operation";
-export function safeCheckout(value: unknown) {
-  try {
-    const u = new URL(String(value));
-    return u.protocol === "https:" &&
-      !u.username &&
-      !u.password &&
-      u.hostname === "checkout.paystack.com"
-      ? u.href
-      : null;
-  } catch {
-    return null;
-  }
-}
+import { ReceiptMenu } from "../components/ReceiptMenu";
+export const safeCheckout = paystackCheckoutUrl;
 export function TransactionScreen() {
   const cache = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const valid = validTransactionId(id);
   const query = useResource<{ transaction: Transaction }>(
     `/payments/${valid ? id : "invalid"}`,
-    { enabled: valid, poll: 8000 },
+    { enabled: valid },
   );
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   const t = query.data?.transaction;
+  const preparing = t ? isDepositPreparing(t) : false;
   useEffect(() => {
     if (!t) return;
     for (const key of [
@@ -72,22 +68,33 @@ export function TransactionScreen() {
         if (p?.transactionId === t.id) return savePending(null);
       });
   }, [t?.id, t?.status]);
+  useEffect(() => {
+    if (!t || !shouldRefreshTransaction(t)) return;
+    const timer = setInterval(
+      () => {
+        if (AppState.currentState === "active") void query.refetch();
+      },
+      preparing ? 2000 : 30000,
+    );
+    return () => clearInterval(timer);
+  }, [t?.id, t?.status, preparing, query.refetch]);
   const checkout = safeCheckout(t?.details.checkoutUrl);
   return (
     <Screen
       title="Transaction details."
       onRefresh={() => void query.refetch()}
-      refreshing={query.isRefetching}
+      refreshing={false}
     >
       {!valid ? (
         <Notice danger>This transaction link is invalid.</Notice>
       ) : query.isPending ? (
         <LoadingState />
-      ) : query.error ? (
+      ) : query.error && !query.data ? (
         <ErrorState error={query.error} retry={() => void query.refetch()} />
       ) : (
         t && (
           <>
+            <ReceiptMenu id={t.id} />
             <Animated.View
               key={t.status}
               entering={FadeIn.duration(180)}
@@ -101,7 +108,7 @@ export function TransactionScreen() {
                 <Clock3 size={48} color="white" />
               )}
               <Text className="text-base font-semibold text-white/80">
-                {statusLabels[t.status]}
+                {preparing ? "Preparing checkout" : statusLabels[t.status]}
               </Text>
               <Text className="text-center text-4xl font-extrabold text-white">
                 {formatMoney(t.amount)}
@@ -132,22 +139,30 @@ export function TransactionScreen() {
                 </Text>
               </Card>
             )}
-            {checkout && isPending(t.status) && (
+            {checkout &&
+              t.kind === "deposit" &&
+              (isPending(t.status) || t.status === "failed") && (
+                <Button
+                  title={
+                    t.status === "failed"
+                      ? "Try secure checkout again"
+                      : "Open secure checkout"
+                  }
+                  busy={busy}
+                  onPress={() => {
+                    setBusy(true);
+                    void WebBrowser.openBrowserAsync(checkout)
+                      .then(() => query.refetch())
+                      .catch((e) => setMessage(e.message))
+                      .finally(() => setBusy(false));
+                  }}
+                />
+              )}
+            {shouldRefreshTransaction(t) && (
               <Button
-                title="Open secure checkout"
-                busy={busy}
-                onPress={() => {
-                  setBusy(true);
-                  void WebBrowser.openBrowserAsync(checkout)
-                    .then(() => query.refetch())
-                    .catch((e) => setMessage(e.message))
-                    .finally(() => setBusy(false));
-                }}
-              />
-            )}
-            {isPending(t.status) && (
-              <Button
-                title="Check payment status"
+                title={
+                  preparing ? "Retry checkout setup" : "Check payment status"
+                }
                 secondary
                 busy={busy}
                 onPress={() => {
@@ -166,15 +181,6 @@ export function TransactionScreen() {
               />
             )}
             {message && <Notice>{message}</Notice>}
-            <Button
-              title="Share receipt"
-              secondary
-              onPress={() => {
-                void Share.share({
-                  message: `Quick Pay receipt\n${statusLabels[t.status]}\n${formatMoney(t.amount)}\nFee: ${formatMoney(t.fee)}\nReference: ${t.reference}\n${localDate(t.createdAt)} (Africa/Lagos)`,
-                }).catch((e) => setMessage(e.message));
-              }}
-            />
             <Button
               title="Get help with this transaction"
               secondary

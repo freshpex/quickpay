@@ -77,7 +77,7 @@ const transaction = {
   reference: "browser-illustration",
   createdAt: new Date().toISOString(),
   serviceId: "mtn",
-  details: { beneficiary: "08012345678" },
+  details: { beneficiary: "08031234567" },
 };
 // UI fixtures exist only in the browser test harness, never in the runtime adapters.
 async function fixture(
@@ -95,27 +95,29 @@ async function fixture(
     const custom = extra(path, req.method(), body);
     const data =
       custom ??
-      (path === "/health"
-        ? { status: "ok" }
-        : path === "/admin/access"
-          ? { allowed: true, mfaEnabled: true }
-          : path === "/auth/get-session"
-            ? session
-            : path === "/profile"
-              ? { user: { name: "Browser Test", email_verified: true } }
-              : path === "/wallet"
-                ? {
-                    available: "2500000",
-                    reserved: "0",
-                    rewards: "0",
-                    reward_debt: "0",
-                    currency: "NGN",
-                  }
-                : path.startsWith("/payments/")
-                  ? { transaction }
-                  : path === "/payments"
-                    ? { transactions: [] }
-                    : {});
+      (path === "/security/pin"
+        ? { configured: true }
+        : path === "/health"
+          ? { status: "ok" }
+          : path === "/admin/access"
+            ? { allowed: true, mfaEnabled: true }
+            : path === "/auth/get-session"
+              ? session
+              : path === "/profile"
+                ? { user: { name: "Browser Test", email_verified: true } }
+                : path === "/wallet"
+                  ? {
+                      available: "2500000",
+                      reserved: "0",
+                      rewards: "0",
+                      reward_debt: "0",
+                      currency: "NGN",
+                    }
+                  : path.startsWith("/payments/")
+                    ? { transaction }
+                    : path === "/payments"
+                      ? { transactions: [] }
+                      : {});
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -285,7 +287,7 @@ test("signup password buttons, confirmation and unchecked terms validate", async
   await expect(page.getByRole("checkbox")).not.toBeChecked();
   await page.getByLabel("Full name", { exact: true }).fill("Browser Test");
   await page.getByLabel("Email address").fill("browser@example.com");
-  await page.getByLabel("Nigerian phone number").fill("08012345678");
+  await page.getByLabel("Nigerian phone number").fill("08031234567");
   await page.locator("#password").fill("StrongPassword123!");
   await page.locator("#confirmPassword").fill("DifferentPassword123!");
   await page
@@ -352,13 +354,11 @@ test("bill wizard reviews beneficiary, fee and total then shows pending state", 
   });
   await page.goto("/airtime");
   await page.getByRole("button", { name: /MTN airtime/ }).click();
-  await page.getByLabel("Nigerian phone number").fill("08012345678");
+  await page.getByLabel("Nigerian phone number").fill("08031234567");
   await page.getByLabel("Amount (₦)").fill("1000");
   await page.getByRole("button", { name: "Review payment" }).click();
   await expect(page.getByText("₦1,000.00").first()).toBeVisible();
-  await page
-    .getByLabel("Confirm with your password", { exact: true })
-    .fill("StrongPassword123!");
+  await page.getByLabel("Transaction PIN", { exact: true }).fill("572904");
   await page.getByRole("button", { name: "Confirm and pay" }).click();
   await expect(page).toHaveURL(/\/transactions\//);
   await expect(page.getByText("processing", { exact: true })).toBeVisible();
@@ -370,7 +370,12 @@ test("withdrawal validates bank details before authorization and reservation", a
   let submitted: Record<string, unknown> | undefined;
   await fixture(page, (path, method, body) => {
     if (path === "/banks")
-      return { banks: [{ name: "Browser test bank", code: "999" }] };
+      return {
+        banks: [
+          { name: "Browser test bank", code: "999" },
+          { name: "Another bank", code: "888" },
+        ],
+      };
     if (path === "/banks/resolve")
       return {
         id: "22222222-2222-4222-8222-222222222222",
@@ -382,14 +387,26 @@ test("withdrawal validates bank details before authorization and reservation", a
     }
   });
   await page.goto("/withdraw");
-  await page.getByLabel("Bank", { exact: true }).selectOption("999");
+  await expect(
+    page.getByRole("searchbox", { name: "Search banks" }),
+  ).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Bank", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search banks" }).fill("Browser");
+  await expect(
+    page.getByRole("option", { name: "Browser test bank" }),
+  ).toBeVisible();
+  await expect(page.getByRole("option", { name: "Another bank" })).toHaveCount(
+    0,
+  );
+  await page.getByRole("option", { name: "Browser test bank" }).click();
+  await expect(
+    page.getByRole("searchbox", { name: "Search banks" }),
+  ).toHaveCount(0);
   await page.getByLabel("Account number").fill("1234567890");
   await page.getByLabel("Amount (₦)").fill("1000");
   await page.getByRole("button", { name: "Check account and review" }).click();
   await expect(page.getByText("BROWSER TEST", { exact: true })).toBeVisible();
-  await page
-    .getByLabel("Confirm with your password", { exact: true })
-    .fill("StrongPassword123!");
+  await page.getByLabel("Transaction PIN", { exact: true }).fill("572904");
   await page.getByRole("button", { name: "Confirm withdrawal" }).click();
   await expect(page).toHaveURL(/transactions/);
   expect(submitted?.validationId).toBe("22222222-2222-4222-8222-222222222222");
@@ -456,4 +473,230 @@ test("unauthenticated API and unavailable provider operations fail closed", asyn
     data: { event: "charge.success" },
   });
   expect(webhook.status()).toBe(401);
+});
+
+test("transaction status refreshes quietly after thirty seconds and receipts download as files", async ({
+  page,
+}) => {
+  await page.clock.install();
+  let completed = false;
+  await fixture(page, (path) =>
+    path === `/payments/${transaction.id}`
+      ? {
+          transaction: {
+            ...transaction,
+            status: completed ? "successful" : "processing",
+          },
+        }
+      : undefined,
+  );
+  await page.route("**/receipt?format=pdf", (route) =>
+    route.fulfill({
+      contentType: "application/pdf",
+      body: Buffer.from("%PDF-1.7\nReceipt fixture"),
+    }),
+  );
+  await page.goto(`/transactions/detail?id=${transaction.id}`);
+  await expect(
+    page.getByText(transaction.reference, { exact: true }),
+  ).toBeVisible();
+  const original = await page
+    .getByText(transaction.reference, { exact: true })
+    .elementHandle();
+  completed = true;
+  await page.clock.runFor(30000);
+  await expect(page.getByText("successful", { exact: true })).toBeVisible();
+  expect(await original!.evaluate((node) => node.isConnected)).toBe(true);
+  await page.getByRole("button", { name: "Receipt options" }).click();
+  const download = page.waitForEvent("download");
+  await page
+    .getByRole("menuitem", { name: "Download PDF", exact: true })
+    .click();
+  expect((await download).suggestedFilename()).toBe(
+    `QuickPay-receipt-${transaction.id}.pdf`,
+  );
+});
+
+test("missing PIN explains setup before navigating and resumes deposit after saving", async ({
+  page,
+}) => {
+  let configured = false;
+  await fixture(page, (path, method, body) => {
+    if (path === "/security/pin") {
+      if (method === "POST") {
+        expect(body).toMatchObject({
+          password: "StrongPassword123!",
+          newPin: "572904",
+          confirmPin: "572904",
+        });
+        configured = true;
+        return { message: "Your transaction PIN is ready." };
+      }
+      return { configured };
+    }
+    if (path === "/wallet/capabilities")
+      return {
+        deposits: true,
+        withdrawals: true,
+        depositMethods: ["card"],
+        minimumDeposit: "10000",
+        maximumDeposit: "100000000",
+        withdrawalFee: "0",
+      };
+  });
+  await page.goto("/deposit");
+  await expect(page).toHaveURL(/\/deposit\/?$/);
+  await expect(
+    page.getByText("Set up your transaction PIN to continue", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue to checkout", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("button", { name: "Set up PIN and continue", exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    /settings\/?\?setup=pin&returnTo=.*#transaction-pin/,
+  );
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "Set up your PIN below to continue with your payment.",
+    }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Current login password", { exact: true })
+    .fill("StrongPassword123!");
+  await page.getByLabel("New transaction PIN", { exact: true }).fill("572904");
+  await page
+    .getByLabel("Confirm transaction PIN", { exact: true })
+    .fill("572904");
+  await page
+    .getByRole("button", { name: "Set transaction PIN", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/deposit\/?$/);
+  await expect(
+    page.getByLabel("Transaction PIN", { exact: true }),
+  ).toBeEditable();
+});
+
+test("authenticator setup explains existing password and displays a local QR code", async ({
+  page,
+}) => {
+  await fixture(page, (path) => {
+    if (path === "/auth/two-factor/enable")
+      return {
+        totpURI:
+          "otpauth://totp/Quick%20Pay:browser?secret=JBSWY3DPEHPK3PXP&issuer=Quick%20Pay",
+        backupCodes: ["backup-one", "backup-two"],
+      };
+  });
+  await page.goto("/settings#authenticator");
+  await expect(
+    page.getByText(/First enter your existing Quick Pay login password/),
+  ).toBeVisible();
+  await page
+    .getByLabel("Existing login password", { exact: true })
+    .fill("StrongPassword123!");
+  await page
+    .getByRole("button", { name: "Set up authenticator", exact: true })
+    .click();
+  await expect(page.locator("#authenticator svg")).toBeVisible();
+  await expect(
+    page.getByLabel("Six-digit code generated by your authenticator"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("JBSWY3DPEHPK3PXP", { exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: "/tmp/quickpay-security-settings.png",
+    fullPage: true,
+  });
+});
+
+test("deposit prepares checkout before offering payment status checks and refreshes without replacing the page", async ({
+  page,
+}) => {
+  await page.clock.install();
+  let stage = "preparing";
+  const deposit = { ...transaction, kind: "deposit", serviceId: null };
+  await fixture(page, (path) =>
+    path === `/payments/${transaction.id}`
+      ? {
+          transaction: {
+            ...deposit,
+            status:
+              stage === "completed"
+                ? "successful"
+                : stage === "ready"
+                  ? "awaiting_authorization"
+                  : "processing",
+            details:
+              stage === "preparing"
+                ? {}
+                : {
+                    checkoutUrl: "https://checkout.paystack.com/local-checkout",
+                  },
+          },
+        }
+      : undefined,
+  );
+  await page.goto(`/transactions/detail?id=${transaction.id}`);
+  await expect(
+    page.getByRole("heading", { name: "Preparing your checkout" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Check your payment", exact: true }),
+  ).toHaveCount(0);
+  const original = await page
+    .getByText(transaction.reference, { exact: true })
+    .elementHandle();
+  stage = "ready";
+  await page.clock.runFor(2000);
+  await expect(
+    page.getByRole("link", { name: "Open secure checkout" }),
+  ).toHaveAttribute("href", "https://checkout.paystack.com/local-checkout");
+  await expect(
+    page.getByRole("heading", { name: "Complete your deposit" }),
+  ).toBeVisible();
+  stage = "completed";
+  await page.clock.runFor(30000);
+  await expect(page.getByText("successful", { exact: true })).toBeVisible();
+  expect(await original!.evaluate((node) => node.isConnected)).toBe(true);
+});
+
+test("bank picker filters in its open dropdown and supports keyboard selection without submitting", async ({
+  page,
+}) => {
+  let lookups = 0;
+  await fixture(page, (path) => {
+    if (path === "/banks")
+      return {
+        banks: [
+          { code: "999", name: "OPay bank" },
+          { code: "888", name: "Another bank" },
+        ],
+      };
+    if (path === "/banks/resolve") {
+      lookups++;
+      return {};
+    }
+  });
+  await page.goto("/withdraw");
+  await page.getByRole("combobox", { name: "Bank", exact: true }).click();
+  const search = page.getByRole("searchbox", { name: "Search banks" });
+  await search.fill("no bank has this name");
+  await expect(
+    page.getByText("No matching banks. Try another name."),
+  ).toBeVisible();
+  await search.fill("opay");
+  await expect(page.getByRole("option", { name: "OPay bank" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Another bank" })).toHaveCount(
+    0,
+  );
+  await search.press("ArrowDown");
+  await search.press("Enter");
+  await expect(
+    page.getByRole("combobox", { name: "Bank", exact: true }),
+  ).toHaveText("OPay bank");
+  expect(lookups).toBe(0);
 });

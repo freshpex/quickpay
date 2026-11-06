@@ -8,7 +8,13 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL || "http://localhost:3000",
     browserName: "chromium",
-    channel: "msedge",
+    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? {
+          launchOptions: {
+            executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+          },
+        }
+      : { channel: "msedge" }),
     headless: true,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

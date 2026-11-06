@@ -1,3 +1,4 @@
+import { PinSettings } from "../components/PinSettings";
 import { useState } from "react";
 import type { ProfileUser } from "@quickpay/contracts";
 import { mutation } from "@quickpay/api-client";
@@ -25,6 +26,7 @@ export function SecurityScreen() {
   const [message, setMessage] = useState("");
   return (
     <Screen title="Keep your corner secure.">
+      <PinSettings />
       <Card>
         <FormField
           control={form.control}

@@ -1,4 +1,5 @@
 "use client";
+import { TransactionPinField } from "../security/TransactionPinField";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, mutation } from "@quickpay/api-client";
@@ -8,6 +9,7 @@ import { Button } from "../../components/ui/button";
 import { ErrorState } from "../../components/feedback";
 export function DepositPage() {
   const [busy, setBusy] = useState(false),
+    [pinReady, setPinReady] = useState(false),
     [error, setError] = useState(""),
     [key] = useState(() => crypto.randomUUID());
   const router = useRouter();
@@ -21,9 +23,14 @@ export function DepositPage() {
       );
       const r = await api<{ transaction: Transaction }>(
         "/deposits",
-        mutation({ amount }, key),
+        mutation(
+          { amount, pin: new FormData(e.currentTarget).get("pin") },
+          key,
+        ),
       );
-      router.push(`/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`);
+      router.push(
+        `/transactions/detail?id=${encodeURIComponent(r.transaction.id)}`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
     } finally {
@@ -52,8 +59,9 @@ export function DepositPage() {
           placeholder="5,000"
         />
         <p className="text-xs text-ink/50">Minimum ₦100. Maximum ₦1,000,000.</p>
+        <TransactionPinField onReady={setPinReady} />
         {error && <ErrorState message={error} />}
-        <Button disabled={busy} className="w-full">
+        <Button disabled={busy || !pinReady} className="w-full">
           {busy ? "Preparing checkout…" : "Continue to checkout"}
         </Button>
       </form>

@@ -12,9 +12,8 @@ import { useResource } from "../../../services/api/use-resource";
 import { useSession } from "../../../providers/SessionProvider";
 import { useValidatedForm } from "../../../lib/forms";
 import { Screen } from "../../../components/layout/screen";
-import { Input } from "../../../components/ui/input";
 import { FormField } from "../../../components/ui/input/FormField";
-import { Choice } from "../../../components/ui/choice/Choice";
+import { BankPicker } from "../components/BankPicker";
 import { Button } from "../../../components/ui/button";
 import {
   Notice,
@@ -39,13 +38,12 @@ export function WithdrawalScreen() {
     }),
     { bankCode: "", accountNumber: "", amount: "" },
   );
-  const [search, setSearch] = useState(""),
-    [review, setReview] = useState<{
-      id: string;
-      name: string;
-      amount: string;
-      expires: number;
-    } | null>(null);
+  const [review, setReview] = useState<{
+    id: string;
+    name: string;
+    amount: string;
+    expires: number;
+  } | null>(null);
   const bank = form.watch("bankCode");
   return (
     <Screen
@@ -65,11 +63,6 @@ export function WithdrawalScreen() {
             {formatMoney(caps.data.withdrawal.maximum)}. Fee{" "}
             {formatMoney(caps.data.withdrawal.fee)}.
           </Notice>
-          <Input
-            label="Search Nigerian banks"
-            value={search}
-            onChangeText={setSearch}
-          />
           {banks.isPending ? (
             <LoadingState />
           ) : banks.error ? (
@@ -78,29 +71,14 @@ export function WithdrawalScreen() {
               retry={() => void banks.refetch()}
             />
           ) : (
-            banks.data.banks
-              .filter(
-                (b) =>
-                  b.code === bank ||
-                  (search.length > 1 &&
-                    b.name.toLowerCase().includes(search.toLowerCase())),
-              )
-              .slice(0, 12)
-              .map((b) => (
-                <Choice
-                  key={b.code}
-                  label={b.name}
-                  selected={bank === b.code}
-                  onPress={() => {
-                    form.setValue("bankCode", b.code);
-                    setSearch("");
-                    setReview(null);
-                  }}
-                />
-              ))
-          )}
-          {!bank && (
-            <Notice>Type at least two letters to choose your bank.</Notice>
+            <BankPicker
+              banks={banks.data.banks}
+              value={bank}
+              onChange={(code) => {
+                form.setValue("bankCode", code);
+                setReview(null);
+              }}
+            />
           )}
           <FormField
             control={form.control}
@@ -153,7 +131,7 @@ export function WithdrawalScreen() {
               fee={caps.data.withdrawal.fee}
               recipient={review.name}
               onClose={() => setReview(null)}
-              onConfirm={async (password) => {
+              onConfirm={async (pin) => {
                 if (review.expires < Date.now())
                   throw new Error(
                     "Please verify this account again before withdrawing.",
@@ -167,7 +145,7 @@ export function WithdrawalScreen() {
                     accountNumber: form.getValues("accountNumber"),
                     validationId: review.id,
                   },
-                  password,
+                  pin,
                 );
                 form.reset();
                 router.replace(`/(customer)/transactions/${t.id}`);

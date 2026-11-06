@@ -20,24 +20,52 @@ export async function listPayments(req: Request) {
 }
 export async function getPayment(req: Request, id: string) {
   const s = await identity(req);
-  return json({
-    transaction: publicTransaction(await ownPayment(id, s.user.id)),
-  });
+  const payment = await ownPayment(id, s.user.id);
+  if (
+    payment.kind === "deposit"
+      ? ["failed", "cancelled"].includes(payment.status) ||
+        (["processing", "awaiting_authorization"].includes(payment.status) &&
+          !!payment.details.checkoutUrl)
+      : ["processing", "awaiting_authorization"].includes(payment.status) &&
+        payment.details.initiationStarted
+  ) {
+    await enqueue(
+      pool,
+      "verify-provider",
+      { reference: payment.reference },
+      `status:${payment.id}:${Math.floor(Date.now() / 30000)}`,
+    );
+  }
+  if (
+    payment.kind === "deposit" &&
+    payment.status === "processing" &&
+    !payment.details.checkoutUrl
+  )
+    await enqueue(
+      pool,
+      "process-payment",
+      { id: payment.id },
+      `checkout:${payment.id}:${Math.floor(Date.now() / 30000)}`,
+    );
+  return json({ transaction: publicTransaction(payment) });
 }
 export async function checkPayment(req: Request, id: string) {
   const s = await identity(req);
   await rateLimit(`check:${s.user.id}`, 10);
   const p = await ownPayment(id, s.user.id);
+  const preparingCheckout =
+    p.kind === "deposit" && p.status === "processing" && !p.details.checkoutUrl;
   await enqueue(
     pool,
-    "verify-provider",
-    { reference: p.reference },
+    preparingCheckout ? "process-payment" : "verify-provider",
+    preparingCheckout ? { id: p.id } : { reference: p.reference },
     `manual:${id}:${Math.floor(Date.now() / 60000)}`,
   );
   return json(
     {
-      message:
-        "We are checking your payment. Please refresh its status shortly.",
+      message: preparingCheckout
+        ? "We are preparing your secure checkout. It will appear here when ready."
+        : "We are checking your payment. Its status will update here automatically.",
     },
     202,
   );

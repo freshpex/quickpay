@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parsePhoneNumberFromString } from "libphonenumber-js/max";
 export type {
   Wallet,
   WalletCapability,
@@ -17,15 +18,30 @@ export type {
 export const POLICY_VERSION = "2026-11-04-draft";
 export const phone = z
   .string()
-  .transform((v) => v.replace(/[\s()-]/g, ""))
-  .transform((v) =>
-    v.startsWith("0") ? `+234${v.slice(1)}` : v.startsWith("234") ? `+${v}` : v,
-  )
-  .pipe(
-    z
-      .string()
-      .regex(/^\+234[789]\d{9}$/, "Enter a valid Nigerian mobile number."),
-  );
+  .trim()
+  .transform((value, ctx) => {
+    const raw = value.startsWith("234") ? `+${value}` : value;
+    const number = /^[+\d\s().-]+$/.test(raw)
+      ? parsePhoneNumberFromString(raw, {
+          defaultCountry: "NG",
+          extract: false,
+        })
+      : undefined;
+    if (
+      !number ||
+      number.country !== "NG" ||
+      !number.isValid() ||
+      number.getType() !== "MOBILE"
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "Enter a valid Nigerian mobile number, e.g. 0803 123 4567 or +2348031234567.",
+      });
+      return z.NEVER;
+    }
+    return String(number.number);
+  });
 export const password = z
   .string()
   .min(12, "Use at least 12 characters.")
@@ -79,6 +95,16 @@ export const states = [
   "cancelled",
 ] as const;
 export type PaymentState = (typeof states)[number];
+export const transactionPin = z
+  .string()
+  .regex(/^\d{6}$/, "Enter your six-digit transaction PIN.");
+export const newTransactionPin = transactionPin.refine(
+  (v) =>
+    !/^(\d)\1{5}$/.test(v) &&
+    !"01234567890123456789".includes(v) &&
+    !"98765432109876543210".includes(v),
+  "Choose a PIN without repeated or sequential digits.",
+);
 export const paymentSchema = z.object({
   serviceId: z.string().min(1),
   beneficiary: z.string().trim().min(3).max(100),
@@ -86,16 +112,16 @@ export const paymentSchema = z.object({
   plan: z.string().max(100).optional(),
   phone: phone.optional(),
   validationId: z.string().uuid().optional(),
-  password: z.string().min(1),
+  pin: transactionPin,
 });
 export const withdrawalSchema = z.object({
   amount: money,
   bankCode: z.string().regex(/^\d{3,6}$/),
   accountNumber: z.string().regex(/^\d{10}$/),
   validationId: z.string().uuid(),
-  password: z.string().min(1),
+  pin: transactionPin,
 });
-export const depositSchema = z.object({ amount: money });
+export const depositSchema = z.object({ amount: money, pin: transactionPin });
 export const rewardRuleSchema = z
   .object({
     name: z.string().trim().min(3).max(100),
@@ -212,3 +238,35 @@ export type ApiError = {
     correlationId: string;
   };
 };
+export function paystackCheckoutUrl(value: unknown): string | null {
+  try {
+    const url = new URL(String(value));
+    return url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      url.hostname === "checkout.paystack.com"
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+export function isDepositPreparing(
+  t: Pick<Transaction, "kind" | "status" | "details">,
+) {
+  return (
+    t.kind === "deposit" &&
+    ["created", "processing", "awaiting_authorization"].includes(t.status) &&
+    !t.details.checkoutUrl
+  );
+}
+export function shouldRefreshTransaction(
+  t: Pick<Transaction, "kind" | "status" | "createdAt">,
+) {
+  return (
+    ["created", "processing", "awaiting_authorization"].includes(t.status) ||
+    (t.kind === "deposit" &&
+      ["failed", "cancelled"].includes(t.status) &&
+      Date.now() - new Date(t.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000)
+  );
+}

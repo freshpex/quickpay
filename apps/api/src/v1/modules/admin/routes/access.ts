@@ -1,3 +1,4 @@
+import { queueSecurityEmail } from "../../../../shared/infrastructure/email/queue";
 import { z } from "zod";
 import { pool } from "@quickpay/database";
 import { identity } from "../../../../shared/auth";
@@ -23,7 +24,10 @@ export async function adminAccess(req: Request) {
     "SELECT 1 FROM admin_elevations WHERE session_id=$1 AND expires_at>now()",
     [s.session.id],
   );
-  return json({ allowed: !!valid.rowCount, mfaEnabled: u.two_factor_enabled });
+  return json({
+    allowed: !!valid.rowCount && u.two_factor_enabled,
+    mfaEnabled: u.two_factor_enabled,
+  });
 }
 export async function unlockAdmin(req: Request) {
   const s = await identity(req);
@@ -55,5 +59,11 @@ export async function unlockAdmin(req: Request) {
   await audit(pool, s.user.id, "admin.unlocked", s.session.id, null, {
     expiresInMinutes: 15,
   });
+  await queueSecurityEmail(
+    s.user.id,
+    "Admin tools unlocked",
+    "An authenticator check unlocked your Quick Pay admin tools for 15 minutes. If this was not you, secure your account immediately.",
+    `admin-unlock:${crypto.randomUUID()}`,
+  );
   return json({ message: "Admin tools unlocked for 15 minutes." });
 }

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatMoney, type Transaction } from "@quickpay/contracts";
 import { Screen } from "../../../components/layout/screen";
 import { Button } from "../../../components/ui/button";
-import { PasswordInput } from "../../../components/ui/password-input";
+import { TransactionPinInput } from "../../security/components/TransactionPinInput";
 import { Card, Row } from "../../../components/ui/card/Card";
 import {
   Notice,
@@ -20,7 +20,7 @@ import {
 } from "../services/native-operation";
 export function RecoveryScreen() {
   const { session } = useSession();
-  const [password, setPassword] = useState(""),
+  const [pin, setPin] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   const pending = useQuery({
@@ -77,29 +77,22 @@ export function RecoveryScreen() {
           {message && <Notice>{message}</Notice>}
           {!p.transactionId && (
             <>
-              {p.kind !== "deposit" && (
-                <PasswordInput
-                  label="Account password"
-                  value={password}
-                  onChangeText={setPassword}
-                  autoComplete="current-password"
-                />
-              )}
+              <TransactionPinInput value={pin} onChange={setPin} />
               <Button
                 title="Submit original request again"
                 secondary
                 busy={busy}
-                disabled={p.kind !== "deposit" && !password}
+                disabled={!/^\d{6}$/.test(pin)}
                 onPress={() => {
                   setBusy(true);
                   void operations
-                    .retry(session!.user.id, password)
+                    .retry(session!.user.id, pin)
                     .then((t) =>
                       router.replace(`/(customer)/transactions/${t.id}`),
                     )
                     .catch((e) => setMessage(e.message))
                     .finally(() => {
-                      setPassword("");
+                      setPin("");
                       setBusy(false);
                     });
                 }}

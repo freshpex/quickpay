@@ -1,11 +1,11 @@
 "use client";
+import { TransactionPinField } from "../security/TransactionPinField";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Copy, Users } from "lucide-react";
 import { formatMoney } from "@quickpay/contracts";
 import { api, mutation } from "@quickpay/api-client";
 import { useApi } from "../../lib/use-api";
-import { PasswordInput } from "../../components/ui/password-input";
 import { Button } from "../../components/ui/button";
 import { StatusBadge } from "../../components/ui/status-badge";
 import {
@@ -31,6 +31,7 @@ export function ReferralsPage() {
   const info = useApi<Rewards>("/referrals"),
     rule = useApi<{ summary: string }>("/rewards/active-rule");
   const [claim, setClaim] = useState(""),
+    [pinReady, setPinReady] = useState(false),
     [busy, setBusy] = useState(false);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,7 +39,7 @@ export function ReferralsPage() {
     try {
       await api(
         `/rewards/${claim}/claim`,
-        mutation({ password: new FormData(e.currentTarget).get("password") }),
+        mutation({ pin: new FormData(e.currentTarget).get("pin") }),
       );
       toast.success("Your reward is in your wallet.");
       setClaim("");
@@ -150,14 +151,8 @@ export function ReferralsPage() {
                 className="max-w-md space-y-4 rounded-2xl border border-brand/20 bg-white p-6"
               >
                 <h2 className="font-bold">Confirm reward claim</h2>
-                <PasswordInput
-                  id="claim-password"
-                  name="password"
-                  label="Your password"
-                  autoComplete="current-password"
-                  required
-                />
-                <Button disabled={busy}>Confirm claim</Button>
+                <TransactionPinField onReady={setPinReady} />
+                <Button disabled={busy || !pinReady}>Confirm claim</Button>
                 <button
                   type="button"
                   onClick={() => setClaim("")}

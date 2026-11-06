@@ -111,8 +111,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   <Button disabled={busy}>Unlock admin tools</Button>
                 </form>
               ) : (
-                <Link href="/settings" className="font-bold text-brand">
-                  Set up two-step verification in Settings
+                <Link
+                  href="/settings#authenticator"
+                  className="font-bold text-brand"
+                >
+                  Set up your authenticator in Settings (use your existing login
+                  password, then the app-generated code)
                 </Link>
               )}
             </div>

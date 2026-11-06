@@ -1,3 +1,4 @@
+import { phone } from "@quickpay/contracts";
 import { z } from "zod";
 import { pool } from "@quickpay/database";
 import { identity } from "../../../../shared/auth";
@@ -40,6 +41,17 @@ export async function beneficiaries(req: Request) {
       }),
     }),
   );
+  const service = v.details.serviceId
+    ? (
+        await pool.query("SELECT category FROM service_catalog WHERE id=$1", [
+          v.details.serviceId,
+        ])
+      ).rows[0]
+    : null;
+  if (v.kind === "phone" || ["airtime", "data"].includes(service?.category)) {
+    v.details.account = phone.parse(v.details.account);
+    v.kind = "phone";
+  }
   const id = crypto.randomUUID();
   await pool.query(
     "INSERT INTO beneficiaries(id,user_id,name,kind,details) VALUES($1,$2,$3,$4,$5)",

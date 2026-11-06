@@ -1,3 +1,4 @@
+import { queueSecurityEmail } from "../../../shared/infrastructure/email/queue";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, twoFactor } from "better-auth/plugins";
@@ -20,6 +21,14 @@ function createAuth() {
       maxPasswordLength: 128,
       requireEmailVerification: true,
       revokeSessionsOnPasswordReset: true,
+      onPasswordReset: async ({ user }) => {
+        await queueSecurityEmail(
+          user.id,
+          "Your password was reset",
+          "Your Quick Pay login password was reset. If this was not you, secure your email and contact support immediately.",
+          `password-reset-alert:${crypto.randomUUID()}`,
+        );
+      },
       sendResetPassword: async ({ user, url }) => {
         await enqueue(
           pool,
@@ -27,7 +36,7 @@ function createAuth() {
           {
             to: user.email,
             subject: "Reset your Quick Pay password",
-            text: `Reset your password: ${url}`,
+            text: `A password reset was requested for your Quick Pay account. Open the secure link below to choose a new password.\n${url}\nIf this was not you, you can ignore this email. Your password has not changed.`,
           },
           `reset:${crypto.randomUUID()}`,
         );
@@ -43,7 +52,7 @@ function createAuth() {
           {
             to: user.email,
             subject: "Verify your Quick Pay email",
-            text: `Verify your email: ${url}`,
+            text: `Welcome to Quick Pay. Confirm your email address to finish setting up your account and keep your payments secure.\n${url}\nIf you did not create this account, you can ignore this email.`,
           },
           `verify:${crypto.randomUUID()}`,
         );
