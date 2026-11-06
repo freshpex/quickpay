@@ -73,14 +73,62 @@ export async function verifyPayment(p: PaymentRow) {
         .nullish()
         .transform((value) => value ?? undefined),
     });
-    const content = z
+    const parsed = z
       .union([
         z
           .object({ transactions: transactionSchema })
           .transform((value) => value.transactions),
         transactionSchema,
       ])
-      .parse(data.content);
+      .safeParse(data.content);
+    if (!parsed.success) {
+      const description = data.response_description || "";
+      const reason =
+        /(?:invalid|incorrect|missing).*(?:key|credential)|unauth|authenticat/i.test(
+          description,
+        )
+          ? "authentication"
+          : /not.*(?:found|exist)|invalid.*request/i.test(description)
+            ? "reference-not-found"
+            : /process|pending|progress/i.test(description)
+              ? "pending"
+              : /balance|insufficient/i.test(description)
+                ? "provider-balance"
+                : "response-format";
+      const knownFields = new Set([
+        "transactions",
+        "transaction",
+        "status",
+        "amount",
+        "request_id",
+        "requestId",
+        "data",
+        "error",
+        "errors",
+        "message",
+        "response_description",
+        "code",
+        "content",
+      ]);
+      console.error(
+        JSON.stringify({
+          event: "provider_verification_unconfirmed",
+          provider: "vtpass",
+          providerCode: /^\d{3}$/.test(data.code || "") ? data.code : "unknown",
+          reason,
+          responseFields:
+            data.content && typeof data.content === "object"
+              ? Object.keys(data.content).filter((key) => knownFields.has(key))
+              : [],
+        }),
+      );
+      throw new DomainError(
+        "PROVIDER_PENDING",
+        "The payment provider has not returned enough information to confirm this transaction yet.",
+        503,
+      );
+    }
+    const content = parsed.data;
     const reference = data.requestId || content.request_id;
     assert(
       reference === p.reference &&

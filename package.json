@@ -32,7 +32,10 @@
     "admin:bootstrap": "tsx scripts/provision-admin.ts",
     "worker:start": "tsx apps/worker/src/index.ts",
     "start": "pnpm --parallel --filter @quickpay/web --filter @quickpay/api start",
-    "admin:verify-email": "tsx scripts/verify-admin-email.ts"
+    "admin:verify-email": "tsx scripts/verify-admin-email.ts",
+    "security:scan": "tsx scripts/security-scan.ts",
+    "qa:prepare": "tsx scripts/prepare-qa.ts",
+    "verify": "tsx scripts/verify.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

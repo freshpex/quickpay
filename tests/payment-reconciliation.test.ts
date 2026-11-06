@@ -244,3 +244,31 @@ it("does not settle an incomplete or wrong-recipient flat requery response", asy
   }
   expect(mocks.settle).not.toHaveBeenCalled();
 });
+
+it("keeps incomplete provider verification pending and logs only safe diagnostic metadata", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  mocks.vtpass.mockResolvedValue({
+    code: "011",
+    response_description: "Invalid API key: private-credential",
+    requestId: payment.reference,
+    content: { error: "private-account-data" },
+  });
+  try {
+    await expect(verifyPayment(payment)).rejects.toMatchObject({
+      code: "PROVIDER_PENDING",
+    });
+    expect(mocks.settle).not.toHaveBeenCalled();
+    const diagnostic = JSON.parse(log.mock.calls[0][0]);
+    expect(diagnostic).toMatchObject({
+      event: "provider_verification_unconfirmed",
+      providerCode: "011",
+      reason: "authentication",
+      responseFields: ["error"],
+    });
+    expect(JSON.stringify(diagnostic)).not.toMatch(
+      /private-credential|private-account-data/,
+    );
+  } finally {
+    log.mockRestore();
+  }
+});
