@@ -1,3 +1,4 @@
+import { ComingSoon } from "../../coming-soon/ComingSoon";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import {
@@ -86,6 +87,7 @@ export function DashboardScreen() {
           </Pressable>
         ))}
       </View>
+      <ComingSoon />
       <RecoveryCard />
       <LinkRow
         title="Your updates"

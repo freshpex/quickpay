@@ -12,10 +12,12 @@ export async function products(req: Request) {
   return json({
     products: (
       await pool.query(
-        "SELECT * FROM gift_products WHERE enabled=true AND sell_enabled=true ORDER BY brand",
+        "SELECT * FROM gift_products WHERE enabled=true AND sell_enabled=true AND (sandbox_only=false OR $1) ORDER BY brand",
+        [env().PAYMENT_MODE === "sandbox"],
       )
     ).rows,
-    buyingAvailable: false,
+    buyingAvailable: env().PAYMENT_MODE === "sandbox",
+    sandbox: env().PAYMENT_MODE === "sandbox",
   });
 }
 export async function quote(req: Request) {
@@ -30,8 +32,8 @@ export async function quote(req: Request) {
   const {
     rows: [p],
   } = await pool.query(
-    "SELECT * FROM gift_products WHERE id=$1 AND enabled=true AND sell_enabled=true",
-    [v.productId],
+    "SELECT * FROM gift_products WHERE id=$1 AND enabled=true AND sell_enabled=true AND (sandbox_only=false OR $2)",
+    [v.productId, env().PAYMENT_MODE === "sandbox"],
   );
   assert(p, "GIFT_UNAVAILABLE", "This gift card is not available yet.", 503);
   const units = BigInt(v.units);
@@ -193,11 +195,14 @@ export async function sales(req: Request) {
     const {
       rows: [q],
     } = await c.query(
-      "SELECT * FROM gift_quotes WHERE id=$1 AND user_id=$2 FOR UPDATE",
+      "SELECT q.*,p.sandbox_only FROM gift_quotes q JOIN gift_products p ON p.id=q.product_id WHERE q.id=$1 AND q.user_id=$2 FOR UPDATE OF q",
       [v.quoteId, s.user.id],
     );
     assert(
-      q && !q.used && new Date(q.expires_at) > new Date(),
+      q &&
+        !q.used &&
+        new Date(q.expires_at) > new Date() &&
+        (!q.sandbox_only || env().PAYMENT_MODE === "sandbox"),
       "QUOTE_EXPIRED",
       "Your quote expired. Request a new quote.",
       409,

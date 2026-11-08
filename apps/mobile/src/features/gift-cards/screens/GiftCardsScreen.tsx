@@ -1,3 +1,4 @@
+import { BuyCards } from "../components/BuyCards";
 import { useEffect, useRef, useState } from "react";
 import { Text } from "react-native";
 import { z } from "zod";
@@ -31,6 +32,7 @@ export function GiftCardsScreen() {
   const products = useResource<{
       products: GiftProduct[];
       buyingAvailable: boolean;
+      sandbox: boolean;
     }>("/gift-cards/products"),
     sales = useResource<{ sales: GiftSale[] }>("/gift-cards/sales", {
       poll: 30000,
@@ -42,6 +44,7 @@ export function GiftCardsScreen() {
     }),
     { productId: "", units: "" },
   );
+  const [tab, setTab] = useState("sell");
   const [draft, setDraft] = useState<Draft | null>(null),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
@@ -74,154 +77,187 @@ export function GiftCardsScreen() {
       }}
       refreshing={sales.isRefetching}
     >
-      {products.data?.buyingAvailable === false && (
-        <Notice>
-          Gift-card buying is currently unavailable. You can sell supported
-          cards below.
-        </Notice>
-      )}
-      {draft ? (
+      <Choice
+        label="Sell cards"
+        selected={tab === "sell"}
+        onPress={() => setTab("sell")}
+      />
+      <Choice
+        label="Buy cards"
+        selected={tab === "buy"}
+        onPress={() => setTab("buy")}
+      />
+      {tab === "buy" ? (
+        products.data?.buyingAvailable ? (
+          <BuyCards />
+        ) : (
+          <Notice>Gift-card buying is currently unavailable.</Notice>
+        )
+      ) : (
         <>
-          <QuoteCard quote={draft.quote} expired={expired} />
-          {draft.evidenceId ? (
+          {products.data?.sandbox && (
             <Notice>
-              Your evidence was uploaded securely. Submit the card for review
-              before the quote expires.
+              Sandbox mode. Cards marked Sandbox use illustrative rates. Upload
+              sample evidence only. Sales require administrator review before
+              settlement.
             </Notice>
-          ) : (
-            <Button
-              title="Choose and upload card evidence"
-              disabled={expired}
-              busy={busy}
-              onPress={() => {
-                if (busy) return;
-                setBusy(true);
-                controller.current = new AbortController();
-                void chooseEvidence(controller.current.signal)
-                  .then((e) =>
-                    e ? update({ ...draft, evidenceId: e.id }) : undefined,
+          )}
+          {products.data?.buyingAvailable === false && (
+            <Notice>
+              Gift-card buying is currently unavailable. You can sell supported
+              cards below.
+            </Notice>
+          )}
+          {draft ? (
+            <>
+              <QuoteCard quote={draft.quote} expired={expired} />
+              {draft.evidenceId ? (
+                <Notice>
+                  Your evidence was uploaded securely. Submit the card for
+                  review before the quote expires.
+                </Notice>
+              ) : (
+                <Button
+                  title="Choose and upload card evidence"
+                  disabled={expired}
+                  busy={busy}
+                  onPress={() => {
+                    if (busy) return;
+                    setBusy(true);
+                    controller.current = new AbortController();
+                    void chooseEvidence(controller.current.signal)
+                      .then((e) =>
+                        e ? update({ ...draft, evidenceId: e.id }) : undefined,
+                      )
+                      .catch((e) => setMessage(e.message))
+                      .finally(() => setBusy(false));
+                  }}
+                />
+              )}
+              {busy && (
+                <Button
+                  title="Cancel upload"
+                  secondary
+                  onPress={() => controller.current?.abort()}
+                />
+              )}
+              <Button
+                title="Submit card for review"
+                busy={busy}
+                disabled={expired || !draft.evidenceId}
+                onPress={() => {
+                  if (sending.current || !draft.evidenceId) return;
+                  sending.current = true;
+                  setBusy(true);
+                  void api<{ message: string }>(
+                    "/gift-cards/sales",
+                    mutation({
+                      quoteId: draft.quote.id,
+                      evidenceId: draft.evidenceId,
+                    }),
                   )
-                  .catch((e) => setMessage(e.message))
-                  .finally(() => setBusy(false));
-              }}
-            />
-          )}
-          {busy && (
-            <Button
-              title="Cancel upload"
-              secondary
-              onPress={() => controller.current?.abort()}
-            />
-          )}
-          <Button
-            title="Submit card for review"
-            busy={busy}
-            disabled={expired || !draft.evidenceId}
-            onPress={() => {
-              if (sending.current || !draft.evidenceId) return;
-              sending.current = true;
-              setBusy(true);
-              void api<{ message: string }>(
-                "/gift-cards/sales",
-                mutation({
-                  quoteId: draft.quote.id,
-                  evidenceId: draft.evidenceId,
-                }),
-              )
-                .then(async (result) => {
-                  setMessage(result.message);
-                  await update(null);
-                  await sales.refetch();
-                })
-                .catch((e) => setMessage(e.message))
-                .finally(() => {
-                  sending.current = false;
-                  setBusy(false);
-                });
-            }}
-          />
-          <Button
-            title={expired ? "Request a fresh quote" : "Start a new quote"}
-            secondary
-            disabled={busy}
-            onPress={() => void update(null)}
-          />
-        </>
-      ) : products.isPending ? (
-        <LoadingState />
-      ) : products.error ? (
-        <ErrorState
-          error={products.error}
-          retry={() => void products.refetch()}
-        />
-      ) : !products.data.products.length ? (
-        <EmptyState
-          title="No cards available right now"
-          body="Supported cards will appear here when they’re available."
-        />
-      ) : (
-        <>
-          {products.data.products.map((p) => (
-            <Choice
-              key={p.id}
-              label={`${p.brand} · ${p.region}`}
-              detail={`${p.card_type} · ${p.min_units}–${p.max_units} units`}
-              selected={form.watch("productId") === p.id}
-              onPress={() => form.setValue("productId", p.id)}
-            />
-          ))}
-          <FormField
-            control={form.control}
-            name="units"
-            label="Card face value (whole units)"
-            keyboardType="number-pad"
-          />
-          {form.formState.errors.root?.message && (
-            <Notice danger>{form.formState.errors.root.message}</Notice>
-          )}
-          <Button
-            title="Get a current quote"
-            busy={form.formState.isSubmitting}
-            onPress={() =>
-              void form.submit(async (v) => {
-                const quote = await api<GiftQuote>(
-                  "/gift-cards/quotes",
-                  mutation(v),
-                );
-                await update({ quote });
-              })()
-            }
-          />
-        </>
-      )}
-      {message && <Notice>{message}</Notice>}
-      <Text accessibilityRole="header" className="text-xl font-bold text-ink">
-        Your card sales
-      </Text>
-      {sales.isPending ? (
-        <LoadingState />
-      ) : sales.error ? (
-        <ErrorState error={sales.error} retry={() => void sales.refetch()} />
-      ) : !sales.data.sales.length ? (
-        <EmptyState
-          title="No card sales yet"
-          body="Submitted cards and their settlement status appear here. An upload alone never adds money to your wallet."
-        />
-      ) : (
-        sales.data.sales.map((s) => (
-          <Card key={s.id}>
-            <Row label={s.brand} value={formatMoney(s.amount)} />
-            <Row label="Status" value={s.status.replaceAll("_", " ")} />
-            <Row label="Submitted" value={localDate(s.created_at)} />
-            {s.reason && <Notice>{s.reason}</Notice>}
-            {s.settlement_reference && (
-              <Row
-                label="Settlement reference"
-                value={s.settlement_reference}
+                    .then(async (result) => {
+                      setMessage(result.message);
+                      await update(null);
+                      await sales.refetch();
+                    })
+                    .catch((e) => setMessage(e.message))
+                    .finally(() => {
+                      sending.current = false;
+                      setBusy(false);
+                    });
+                }}
               />
-            )}
-          </Card>
-        ))
+              <Button
+                title={expired ? "Request a fresh quote" : "Start a new quote"}
+                secondary
+                disabled={busy}
+                onPress={() => void update(null)}
+              />
+            </>
+          ) : products.isPending ? (
+            <LoadingState />
+          ) : products.error ? (
+            <ErrorState
+              error={products.error}
+              retry={() => void products.refetch()}
+            />
+          ) : !products.data.products.length ? (
+            <EmptyState
+              title="No cards available right now"
+              body="Supported cards will appear here when they’re available."
+            />
+          ) : (
+            <>
+              {products.data.products.map((p) => (
+                <Choice
+                  key={p.id}
+                  label={`${p.brand} · ${p.region}`}
+                  detail={`${p.card_type} · ${p.min_units}–${p.max_units} units`}
+                  selected={form.watch("productId") === p.id}
+                  onPress={() => form.setValue("productId", p.id)}
+                />
+              ))}
+              <FormField
+                control={form.control}
+                name="units"
+                label="Card face value (whole units)"
+                keyboardType="number-pad"
+              />
+              {form.formState.errors.root?.message && (
+                <Notice danger>{form.formState.errors.root.message}</Notice>
+              )}
+              <Button
+                title="Get a current quote"
+                busy={form.formState.isSubmitting}
+                onPress={() =>
+                  void form.submit(async (v) => {
+                    const quote = await api<GiftQuote>(
+                      "/gift-cards/quotes",
+                      mutation(v),
+                    );
+                    await update({ quote });
+                  })()
+                }
+              />
+            </>
+          )}
+          {message && <Notice>{message}</Notice>}
+          <Text
+            accessibilityRole="header"
+            className="text-xl font-bold text-ink"
+          >
+            Your card sales
+          </Text>
+          {sales.isPending ? (
+            <LoadingState />
+          ) : sales.error ? (
+            <ErrorState
+              error={sales.error}
+              retry={() => void sales.refetch()}
+            />
+          ) : !sales.data.sales.length ? (
+            <EmptyState
+              title="No card sales yet"
+              body="Submitted cards and their settlement status appear here. An upload alone never adds money to your wallet."
+            />
+          ) : (
+            sales.data.sales.map((s) => (
+              <Card key={s.id}>
+                <Row label={s.brand} value={formatMoney(s.amount)} />
+                <Row label="Status" value={s.status.replaceAll("_", " ")} />
+                <Row label="Submitted" value={localDate(s.created_at)} />
+                {s.reason && <Notice>{s.reason}</Notice>}
+                {s.settlement_reference && (
+                  <Row
+                    label="Settlement reference"
+                    value={s.settlement_reference}
+                  />
+                )}
+              </Card>
+            ))
+          )}
+        </>
       )}
     </Screen>
   );

@@ -1,4 +1,5 @@
 "use client";
+import { BuyCards } from "./BuyCards";
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -31,7 +32,11 @@ type Quote = {
   cardType: string;
 };
 export function GiftCardsPage() {
-  const products = useApi<{ products: Product[] }>("/gift-cards/products"),
+  const products = useApi<{
+      products: Product[];
+      buyingAvailable: boolean;
+      sandbox: boolean;
+    }>("/gift-cards/products"),
     sales = useApi<{
       sales: {
         id: string;
@@ -124,13 +129,25 @@ export function GiftCardsPage() {
           </button>
         ))}
       </div>
+      {products.data?.sandbox && (
+        <p className="rounded-xl bg-violet-50 p-4 text-sm">
+          Sandbox mode. Cards marked Sandbox use illustrative rates. Upload
+          sample evidence only. Sales require administrator review before
+          settlement.
+        </p>
+      )}
       {error && <ErrorState message={error} />}
       <div className="max-w-2xl">
         {tab === "buy" ? (
-          <EmptyState
-            title="No gift cards available to buy right now."
-            description="Check back for available cards, or contact support for help."
-          />
+          products.loading ? (
+            <LoadingState />
+          ) : products.error ? (
+            <ErrorState message={products.error} />
+          ) : products.data?.buyingAvailable ? (
+            <BuyCards />
+          ) : (
+            <EmptyState title="Gift-card buying is currently unavailable." />
+          )
         ) : tab === "history" ? (
           sales.loading ? (
             <LoadingState />
@@ -210,7 +227,11 @@ export function GiftCardsPage() {
               Submit for review
             </Button>
             <button
-              onClick={() => setQuote(undefined)}
+              onClick={() => {
+                setQuote(undefined);
+                setEvidence("");
+                setError("");
+              }}
               className="ml-4 min-h-11 text-sm font-bold text-brand"
             >
               New quote
