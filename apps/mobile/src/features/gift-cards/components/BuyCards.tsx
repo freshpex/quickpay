@@ -55,8 +55,8 @@ export function BuyCards() {
   return (
     <>
       <Notice>
-        Sandbox purchase demo. No wallet debit or real card delivery. Prices and
-        codes are illustrative.
+        No money will be charged and no redeemable card will be delivered in
+        this environment.
       </Notice>
       {catalog.isPending ? (
         <LoadingState />
@@ -68,9 +68,11 @@ export function BuyCards() {
       ) : result ? (
         <Card>
           <Row label="Face value" value={result.purchase.units} />
-          <Row label="Demo price" value={formatMoney(result.purchase.amount)} />
+          <Row label="Price" value={formatMoney(result.purchase.amount)} />
           {result.demoCode ? (
-            <Notice>Demo purchase completed. Code: {result.demoCode}</Notice>
+            <Notice>
+              Purchase preview completed. No redeemable code issued.
+            </Notice>
           ) : (
             <>
               <Notice>
@@ -78,7 +80,7 @@ export function BuyCards() {
                 {new Date(result.purchase.expires_at).toLocaleString()}.
               </Notice>
               <Button
-                title="Confirm sandbox purchase"
+                title="Confirm purchase"
                 busy={busy}
                 onPress={() => void submit()}
               />
@@ -122,11 +124,11 @@ export function BuyCards() {
         </>
       )}
       {error && <Notice danger>{error}</Notice>}
-      <Text className="text-xl font-bold text-ink">Your sandbox purchases</Text>
+      <Text className="text-xl font-bold text-ink">Your purchases</Text>
       {catalog.data?.purchases.map((p) => (
         <Card key={p.id}>
           <Row label={p.brand || "Gift card"} value={formatMoney(p.amount)} />
-          <Text selectable>DEMO-NOT-REDEEMABLE-{p.id}</Text>
+          <Text selectable>Reference: {p.id}</Text>
         </Card>
       ))}
     </>

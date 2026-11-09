@@ -129,13 +129,7 @@ export function GiftCardsPage() {
           </button>
         ))}
       </div>
-      {products.data?.sandbox && (
-        <p className="rounded-xl bg-violet-50 p-4 text-sm">
-          Sandbox mode. Cards marked Sandbox use illustrative rates. Upload
-          sample evidence only. Sales require administrator review before
-          settlement.
-        </p>
-      )}
+
       {error && <ErrorState message={error} />}
       <div className="max-w-2xl">
         {tab === "buy" ? (

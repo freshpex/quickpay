@@ -1,3 +1,4 @@
+import { ComingSoon } from "../../coming-soon/ComingSoon";
 import { router } from "expo-router";
 import { categories, type Service } from "@quickpay/contracts";
 import { Screen } from "../../../components/layout/screen";
@@ -66,6 +67,7 @@ export function PaymentsScreen() {
         title="Exchanges"
         onPress={() => router.push("/(customer)/exchanges")}
       />
+      <ComingSoon />
     </Screen>
   );
 }

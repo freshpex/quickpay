@@ -95,13 +95,6 @@ export function GiftCardsScreen() {
         )
       ) : (
         <>
-          {products.data?.sandbox && (
-            <Notice>
-              Sandbox mode. Cards marked Sandbox use illustrative rates. Upload
-              sample evidence only. Sales require administrator review before
-              settlement.
-            </Notice>
-          )}
           {products.data?.buyingAvailable === false && (
             <Notice>
               Gift-card buying is currently unavailable. You can sell supported

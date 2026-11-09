@@ -2,6 +2,10 @@ import "dotenv/config";
 import { z } from "zod";
 import { ConfigurationError } from "../errors";
 const schema = z.object({
+  SMSPOOL_API_KEY: z.string().default(""),
+  FIVESIM_API_KEY: z.string().default(""),
+  BOOSTERO_API_KEY: z.string().default(""),
+  SMMKINGS_API_KEY: z.string().default(""),
   DATABASE_URL: z.url(),
   WEB_ORIGIN: z.url().default("http://localhost:3000"),
   API_ORIGIN: z.url().default("http://localhost:3001"),

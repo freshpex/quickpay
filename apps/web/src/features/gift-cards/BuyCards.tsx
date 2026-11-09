@@ -57,8 +57,8 @@ export function BuyCards() {
   return (
     <div className="space-y-5">
       <p className="rounded-xl bg-violet-50 p-4 text-sm">
-        Sandbox purchase demo. No wallet debit or real card delivery. Prices and
-        codes are illustrative.
+        No money will be charged and no redeemable card will be delivered in
+        this environment.
       </p>
       {error && <ErrorState message={error} />}
       {catalog.loading ? (
@@ -72,19 +72,19 @@ export function BuyCards() {
         >
           <h2 className="text-xl font-bold">
             {result.demoCode
-              ? "Demo purchase completed"
+              ? "Purchase preview completed"
               : "Review purchase quote"}
           </h2>
           <p>Face value: {result.purchase.units} units</p>
-          <p>Demo price: {formatMoney(result.purchase.amount)}</p>
+          <p>Price: {formatMoney(result.purchase.amount)}</p>
           {result.demoCode ? (
-            <p className="break-all">{result.demoCode}</p>
+            <p className="break-all">No redeemable code issued.</p>
           ) : (
             <>
               <p>
                 Expires {new Date(result.purchase.expires_at).toLocaleString()}
               </p>
-              <Button disabled={busy}>Confirm sandbox purchase</Button>
+              <Button disabled={busy}>Confirm purchase</Button>
             </>
           )}
           <button
@@ -107,7 +107,7 @@ export function BuyCards() {
           className="space-y-5 rounded-2xl border border-ink/10 bg-white p-6"
         >
           <label className="block font-bold" htmlFor="buy-product">
-            Choose a sandbox card
+            Choose a card
           </label>
           <select
             id="buy-product"
@@ -135,7 +135,7 @@ export function BuyCards() {
           <Button disabled={busy}>Get purchase quote</Button>
         </form>
       )}
-      <h2 className="text-xl font-bold">Your sandbox purchases</h2>
+      <h2 className="text-xl font-bold">Your purchases</h2>
       {catalog.data?.purchases.map((p) => (
         <div
           key={p.id}
@@ -144,7 +144,7 @@ export function BuyCards() {
           <p>
             {p.brand} · {formatMoney(p.amount)}
           </p>
-          <p className="break-all">DEMO-NOT-REDEEMABLE-{p.id}</p>
+          <p className="break-all">Reference: {p.id}</p>
         </div>
       ))}
     </div>
