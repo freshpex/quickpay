@@ -18,7 +18,11 @@ export async function chooseEvidence(signal?: AbortSignal) {
     )
       throw new Error("Choose a JPG or PNG smaller than 5 MB.");
     const data = new FormData();
-    data.append("file", file as unknown as Blob, asset.name);
+    data.append("file", {
+      uri: asset.uri,
+      name: asset.name,
+      type: asset.mimeType,
+    } as unknown as Blob);
     return await api<{ id: string; status: string }>("/gift-cards/evidence", {
       method: "POST",
       body: data,

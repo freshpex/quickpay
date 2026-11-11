@@ -270,3 +270,4 @@ export function shouldRefreshTransaction(
       Date.now() - new Date(t.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000)
   );
 }
+export type { GiftPurchase, GiftPurchaseResult } from "./gift-purchases";

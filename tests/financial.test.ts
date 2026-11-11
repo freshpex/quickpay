@@ -1,3 +1,5 @@
+import { purchases as giftPurchases } from "../apps/api/src/v1/modules/gift-cards/routes/purchases";
+import { products as giftProducts } from "../apps/api/src/v1/modules/gift-cards/routes/handler";
 import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import { readFile, readdir } from "node:fs/promises";
 import pg from "pg";
@@ -1858,6 +1860,113 @@ describe("deposit checkout recovery", () => {
       vi.unstubAllGlobals();
       config.PAYMENT_MODE = originalMode;
       config.PAYSTACK_SECRET_KEY = originalKey;
+    }
+  });
+});
+
+describe("sandbox gift-card checkout", () => {
+  it("quotes and confirms once without a wallet debit, isolates owners, expires quotes and hides demos outside sandbox", async () => {
+    const config = env(),
+      previous = config.PAYMENT_MODE;
+    const buyer = crypto.randomUUID(),
+      stranger = crypto.randomUUID();
+    await user(buyer);
+    await user(stranger);
+    const login = await auth().api.signInEmail({
+      body: { email: `${buyer}@quickpay.test`, password: testPassword },
+    });
+    const other = await auth().api.signInEmail({
+      body: { email: `${stranger}@quickpay.test`, password: testPassword },
+    });
+    const req = (payload?: unknown, token = login.token) =>
+      new Request("http://localhost:3001/api/v1/gift-cards/purchases", {
+        method: payload ? "POST" : "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        ...(payload ? { body: JSON.stringify(payload) } : {}),
+      });
+    try {
+      config.PAYMENT_MODE = "sandbox";
+      const catalog = await (await giftProducts(req())).json();
+      expect(catalog.buyingAvailable).toBe(true);
+      expect(
+        catalog.products.some(
+          (p: { id: string }) => p.id === "sandbox-apple-us",
+        ),
+      ).toBe(true);
+      await expect(
+        giftPurchases(
+          req({ action: "quote", productId: "sandbox-apple-us", units: "501" }),
+        ),
+      ).rejects.toThrow("within the card limits");
+      const quoted = await (
+        await giftPurchases(
+          req({ action: "quote", productId: "sandbox-apple-us", units: "10" }),
+        )
+      ).json();
+      expect(quoted.purchase.amount).toBe("1000000");
+      const confirmation = { action: "confirm", quoteId: quoted.purchase.id };
+      await expect(
+        giftPurchases(req(confirmation, other.token)),
+      ).rejects.toThrow("not found");
+      const results = await Promise.all([
+        giftPurchases(req(confirmation)),
+        giftPurchases(req(confirmation)),
+      ]);
+      for (const result of results)
+        expect((await result.json()).demoCode).toContain(
+          "DEMO-NOT-REDEEMABLE-",
+        );
+      expect(
+        (await (await giftPurchases(req())).json()).purchases,
+      ).toHaveLength(1);
+      expect(await balance(buyer)).toBe(0n);
+      const expired = await (
+        await giftPurchases(
+          req({ action: "quote", productId: "sandbox-apple-us", units: "10" }),
+        )
+      ).json();
+      await pool.query(
+        "UPDATE sandbox_gift_purchases SET expires_at=now()-interval '1 minute' WHERE id=$1",
+        [expired.purchase.id],
+      );
+      await expect(
+        giftPurchases(req({ action: "confirm", quoteId: expired.purchase.id })),
+      ).rejects.toThrow("expired");
+      const saleQuote = await (
+        await giftQuote(req({ productId: "sandbox-apple-us", units: "10" }))
+      ).json();
+      const evidenceId = crypto.randomUUID();
+      await pool.query(
+        "INSERT INTO evidence(id,user_id,file_path,mime,size) VALUES($1,$2,'sandbox-sample','image/png',100)",
+        [evidenceId, buyer],
+      );
+      const sale = await (
+        await giftSales(req({ quoteId: saleQuote.id, evidenceId }))
+      ).json();
+      expect(sale.id).toBeTruthy();
+      expect(
+        (
+          await pool.query("SELECT status FROM gift_sales WHERE id=$1", [
+            sale.id,
+          ])
+        ).rows[0].status,
+      ).toBe("review");
+      expect(await balance(buyer)).toBe(0n);
+      config.PAYMENT_MODE = "disabled";
+      expect(
+        (await (await giftProducts(req())).json()).products.every(
+          (p: { sandbox_only: boolean }) => !p.sandbox_only,
+        ),
+      ).toBe(true);
+      await expect(giftPurchases(req())).rejects.toThrow("not available");
+      await expect(
+        giftQuote(req({ productId: "sandbox-apple-us", units: "10" })),
+      ).rejects.toThrow("not available");
+    } finally {
+      config.PAYMENT_MODE = previous;
     }
   });
 });

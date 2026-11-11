@@ -129,6 +129,26 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
               {label}
             </Link>
           ))}
+          {[
+            { label: "Virtual numbers", icon: Phone },
+            { label: "Social media boosting", icon: Users },
+          ].map(({ label, icon: Icon }) => (
+            <button
+              key={label}
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="flex min-h-14 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-ink/45"
+            >
+              <Icon size={19} />
+              <span className="flex-1">
+                {label}
+                <span className="mt-1 block text-xs font-medium text-brand">
+                  Coming soon
+                </span>
+              </span>
+            </button>
+          ))}
           {user.role === "admin" && (
             <Link
               href="/admin"

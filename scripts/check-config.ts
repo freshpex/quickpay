@@ -1,3 +1,4 @@
+import { supplierSettings } from "../apps/api/src/v1/modules/digital-services/providers/config";
 import { env } from "../apps/api/src/shared/infrastructure/env";
 import { ConfigurationError } from "../apps/api/src/shared/errors";
 import { config } from "dotenv";
@@ -7,6 +8,7 @@ const envPath = fileURLToPath(new URL("../.env", import.meta.url));
 config({ path: envPath, override: true, quiet: true });
 try {
   const settings = env();
+  supplierSettings();
   console.log(
     `Server configuration is valid. PAYMENT_MODE=${settings.PAYMENT_MODE}. Source: ${envPath}`,
   );

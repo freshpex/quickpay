@@ -1,7 +1,15 @@
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import {
+  FlatList,
+  Modal,
+  Pressable,
+  Text,
+  View,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { ChevronDown } from "lucide-react-native";
-import { Sheet } from "../../../components/ui/bottom-sheet/Sheet";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Input } from "../../../components/ui/input";
 import { Choice } from "../../../components/ui/choice/Choice";
 import { Button } from "../../../components/ui/button";
@@ -39,39 +47,56 @@ export function BankPicker({
           <ChevronDown size={20} color="#6d28d9" />
         </Pressable>
       </View>
-      <Sheet open={open} onClose={() => setOpen(false)}>
-        <Text className="text-xl font-extrabold text-ink">
-          Choose your bank
-        </Text>
-        <Input
-          label="Search banks"
-          placeholder="Type a bank name"
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-        />
-        {filtered.map((b) => (
-          <Choice
-            key={b.code}
-            label={b.name}
-            selected={value === b.code}
-            onPress={() => {
-              onChange(b.code);
-              setOpen(false);
-            }}
-          />
-        ))}
-        {!filtered.length && (
-          <Text className="text-sm text-muted">
-            No matching banks. Try another name.
-          </Text>
-        )}
-        <Button
-          secondary
-          title="Close bank list"
-          onPress={() => setOpen(false)}
-        />
-      </Sheet>
+      <Modal
+        visible={open}
+        animationType="slide"
+        onRequestClose={() => setOpen(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#FAF9FF" }}>
+          <KeyboardAvoidingView
+            style={{ flex: 1, padding: 20, gap: 16 }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <Text className="text-xl font-extrabold text-ink">
+              Choose your bank
+            </Text>
+            <Input
+              label="Search banks"
+              placeholder="Type a bank name"
+              value={search}
+              onChangeText={setSearch}
+              autoCorrect={false}
+            />
+            <FlatList
+              data={filtered}
+              keyExtractor={(bank) => bank.code}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ gap: 8, paddingBottom: 16 }}
+              renderItem={({ item: bank }) => (
+                <Choice
+                  label={bank.name}
+                  selected={value === bank.code}
+                  onPress={() => {
+                    onChange(bank.code);
+                    setOpen(false);
+                  }}
+                />
+              )}
+              ListEmptyComponent={
+                <Text className="text-sm text-muted">
+                  No matching banks. Try another name.
+                </Text>
+              }
+            />
+            <Button
+              secondary
+              title="Close bank list"
+              onPress={() => setOpen(false)}
+            />
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </>
   );
 }

@@ -1,3 +1,4 @@
+import { env } from "../../../../shared/infrastructure/env";
 import { z } from "zod";
 import { atomic, pool, enqueue } from "@quickpay/database";
 import { authorized } from "../../../../shared/auth";
@@ -263,10 +264,16 @@ async function reviewGift(req: Request) {
     const {
       rows: [sale],
     } = await c.query(
-      "SELECT s.*,q.amount,e.status evidence_status FROM gift_sales s JOIN gift_quotes q ON q.id=s.quote_id JOIN evidence e ON e.id=s.evidence_id WHERE s.id=$1 FOR UPDATE OF s",
+      "SELECT s.*,q.amount,p.sandbox_only,e.status evidence_status FROM gift_sales s JOIN gift_quotes q ON q.id=s.quote_id JOIN gift_products p ON p.id=q.product_id JOIN evidence e ON e.id=s.evidence_id WHERE s.id=$1 FOR UPDATE OF s",
       [v.id],
     );
     assert(sale, "NOT_FOUND", "Sale not found.", 404);
+    assert(
+      !sale.sandbox_only || env().PAYMENT_MODE === "sandbox",
+      "SANDBOX_ONLY",
+      "Sandbox cards can only be reviewed in sandbox mode.",
+      409,
+    );
     assert(
       sale.user_id !== s.user.id,
       "SELF_REVIEW",
